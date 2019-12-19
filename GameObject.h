@@ -18,7 +18,7 @@
 ;    6  5
 ;Bullet 
 ;object info
-;x Position, y Position, Direction, Count of rebound
+;Object ID, x Position, y Position, Direction, Count of rebound
 Create_Bullet macro xPara, yPara, Direction                             ;Will draw a bullet
 	Local		checkLoop, FindAvailable, NoStorage
 	pusha
@@ -37,7 +37,7 @@ Create_Bullet macro xPara, yPara, Direction                             ;Will dr
 	mov			word ptr[di+2], xPara
 	mov			word ptr[di+4], yPara
 	mov			word ptr[di+6], Direction
-	mov			word ptr[di+8], 0			
+	mov			word ptr[di+8], 0000h			
 	NoStorage:
 	popa
 endm
@@ -52,13 +52,14 @@ endm
 
 setMap macro mapOffset
     Local           L1, L2, L3
+	pusha
 	mov 			di, mapOffset                                       ;mov the map offset to di
 	L1:
 		mov				cx, word ptr[di]                                ;start from the top left corner
 		L2:                                                             
 		mov				dx, word ptr[di+2]                              ;Draw from left to right 
 			L3:                                                         ;Draw from up to down
-					draw_pixel 	cx, dx, 01h
+					draw_pixel 	cx, dx, 0AFh
 					inc			dx
 					cmp			dx, word ptr[di+6]                      ;Reach bottom
 					jle			L3
@@ -68,133 +69,194 @@ setMap macro mapOffset
 		add				di, 8			
 		cmp				word ptr[di], 0FFFFh                            ;if the next content is not 0FFFFh
 		jne				L1                                              ;draw next object
-
+	popa
 endm
 
 ;Will update the motion of bullet
+Bullet_move macro
+	Local Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft, bullet_set
+	mov			ax, word ptr[di+2]
+	mov			bx, word ptr[di+4]
+	cmp			word ptr[di+6], 1
+	je			Up
+	cmp			word ptr[di+6], 2
+	je			UpRight
+	cmp			word ptr[di+6], 3
+	je			Right
+	cmp			word ptr[di+6], 4
+	je			DownRight
+	cmp			word ptr[di+6], 5
+	je			Down
+	cmp			word ptr[di+6], 6
+	je			DownLeft
+	cmp			word ptr[di+6], 7
+	je			Left
+	cmp			word ptr[di+6], 8
+	je			UpLeft
+	Up: 
+	sub			bx, speed_of_Bullet
+	jmp bullet_set
+	UpRight:
+	add			ax, speed_of_Bullet
+	sub			bx, speed_of_Bullet
+	jmp bullet_set
+	Right:
+	add			ax, speed_of_Bullet
+	jmp bullet_set
+	DownRight:
+	add			ax, speed_of_Bullet
+	add			bx, speed_of_Bullet
+	jmp bullet_set
+	Down:
+	add			bx, speed_of_Bullet
+	jmp bullet_set
+	DownLeft:
+	sub			ax, speed_of_Bullet
+	add			bx, speed_of_Bullet
+	jmp bullet_set
+	Left:
+	sub			ax, speed_of_Bullet
+	jmp bullet_set
+	UpLeft:
+	sub			ax, speed_of_Bullet
+	sub			bx, speed_of_Bullet
+	jmp bullet_set
+	bullet_set:
+	mov			word ptr[di+2], ax		;x in ax, y in bx
+	mov			word ptr[di+4], bx
+endm
 Update_Bullet macro
-    Local       checkLoop, Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft, bullet_set, Check_Collision, MeetBoundary, InYRange, Make_opposite, NextObject
-    Local       proc_end, PrintLoop, ObjectNotFound, L1, Recheck
+    Local       checkLoop, Check_Collision, MeetBoundary, InYRange, Make_opposite, NextObject
+    Local       proc_end, PrintLoop, ObjectNotFound, L1, Recheck, Update, Make_oppositeX, Make_oppositeY, Recheck2
     pusha
 	lea			di, offset object 
 	mov			cx, LENGTHOF object
 	checkLoop:								;object Number, xPara, yPara
 		cmp			word ptr[di], 2
 		jne			NextObject
-		draw_circle word ptr[di+2], word ptr[di+4], 5, 00h
-		mov			ax, word ptr[di+2]
-		mov			bx, word ptr[di+4]
-		cmp			word ptr[di+6], 1
-		je			Up
-		cmp			word ptr[di+6], 2
-		je			UpRight
-		cmp			word ptr[di+6], 3
-		je			Right
-		cmp			word ptr[di+6], 4
-		je			DownRight
-		cmp			word ptr[di+6], 5
-		je			Down
-		cmp			word ptr[di+6], 6
-		je			DownLeft
-		cmp			word ptr[di+6], 7
-		je			Left
-		cmp			word ptr[di+6], 8
-		je			UpLeft
-		Up: 
-		sub			bx, speed_of_Bullet
-		jmp bullet_set
-		UpRight:
-		add			ax, speed_of_Bullet
-		sub			bx, speed_of_Bullet
-		jmp bullet_set
-		Right:
-		add			ax, speed_of_Bullet
-		jmp bullet_set
-		DownRight:
-		add			ax, speed_of_Bullet
-		add			bx, speed_of_Bullet
-		jmp bullet_set
-		Down:
-		add			bx, speed_of_Bullet
-		jmp bullet_set
-		DownLeft:
-		sub			ax, speed_of_Bullet
-		add			bx, speed_of_Bullet
-		jmp bullet_set
-		Left:
-		sub			ax, speed_of_Bullet
-		jmp bullet_set
-		UpLeft:
-		sub			ax, speed_of_Bullet
-		sub			bx, speed_of_Bullet
-		jmp bullet_set
-		bullet_set:
-		mov			word ptr[di+2], ax		;x in ax, y in bx
-		mov			word ptr[di+4], bx
+		draw_circle word ptr[di+2], word ptr[di+4], 5, 72h
+		
 		Check_Collision:
 		mov			ax, word ptr Screen_Size[0]
-		sub			ax, 5
+		sub			ax, 10
 		cmp			word ptr[di+2], ax
-		jge			MeetBoundary
-		cmp			word ptr[di+2], 5
-		jle			MeetBoundary
+		jge			Make_oppositeY
+		cmp			word ptr[di+2], 10
+		jle			Make_oppositeY
 		mov			ax, word ptr Screen_Size[2]
-		sub			ax, 5
+		sub			ax, 10
 		cmp         word ptr[di+4], ax
-		jge			MeetBoundary
-		cmp 		word ptr[di+4], 5
-		jle			MeetBoundary
+		jge			Make_oppositeX
+		cmp 		word ptr[di+4], 10
+		jle			Make_oppositeX
 		
 
 		;check collision with obstacle
 		mov 		si, mapType
 		L1:
 		mov			ax, word ptr[si+4]		;xMax of obstacle
-		add			ax, 10
+		add			ax, 5
 		cmp			word ptr[di+2], ax		;if xPosition is bigger than xMax
 		jg			Recheck					;check next obstacle
 		mov			ax, word ptr[si]		;xMin of obstacle
-		sub			ax, 10
+		sub			ax, 5
 		cmp			word ptr[di+2], ax		;if xPosition is bigger than xMin
 		jge			InYRange				;Mean it is in the range of obstacle in x asix 
 		Recheck:
 		add			si, 8			
 		cmp			word ptr[si], 0FFFFh
 		jne			L1
-		je			NextObject
+		mov 		si, mapType
+		jmp			L2
 		InYRange:
 		mov			ax, word ptr[si+6]		;YMax of obstacle
-		add			ax, 10
+		sub			ax, 5
 		cmp			word ptr[di+4], ax		;if yPosition is bigger than yMax
-		jg			Recheck					;check next obstacle
+		jg			L2						;check next obstacle
 		mov			ax, word ptr[si+2]		;yMin of obstacle
-		sub			ax, 10
+		add ax,5
 		cmp			word ptr[di+4], ax		;if yPosition is bigger than yMin
-		jge			MeetBoundary			;bullet meet obstacle
-		jmp 		Recheck					
+		jge			Make_oppositeY			;bullet meet obstacle
+		jmp 		Recheck
+
+
+		
+		L2:
+
+		mov			ax, word ptr[si+6]		;yMax of obstacle
+		add 		ax, 8
+		cmp			word ptr[di+4], ax		;if yPosition is bigger than yMax
+		jg			Recheck2					;check next obstacle
+		mov			ax, word ptr[si+2]		;yMin of obstacle
+		sub			ax, 8
+		cmp			word ptr[di+4], ax		;if yPosition is bigger than yMin
+		jge			InXRange				;Mean it is in the range of obstacle in y asix 
+		Recheck2:
+		add			si, 8			
+		cmp			word ptr[si], 0FFFFh
+		jne			L2
+		je			Update
+		InXRange:
+		mov			ax, word ptr[si+4]		;XMax of obstacle
+		sub			ax, 5
+		cmp			word ptr[di+2], ax		;if XPosition is bigger than XMax
+		jg			Recheck2				;check next obstacle
+		mov			ax, word ptr[si]		;XMin of obstacle
+		add			ax, 5
+		cmp			word ptr[di+2], ax		;if xPosition is bigger than xMin
+		jge			Make_oppositeX			;bullet meet obstacle
+		jmp 		Recheck2
+
+
+
+		Make_oppositeX:
+		xor			bx, bx
+		xor			ax, ax
+		mov			bl, byte ptr[di+6]
+		dec    		bl
+		mov			al, bound_handler[bx]
+		mov			word ptr[di+6], ax
+		jmp MeetBoundary
+
+		Make_oppositeY:
+		xor			bx, bx
+		xor			ax, ax
+		mov			bl, byte ptr[di+6]
+		dec    		bl
+		mov			al, bound_handler[bx+8]
+		mov			word ptr[di+6], ax
+		jmp MeetBoundary
 
 		MeetBoundary:
+		Bullet_move
 		inc			word ptr[di+8]
-		cmp			word ptr [di+8], 1
-		jle         Make_opposite
+		cmp			word ptr [di+8], 5
+		jle         Update
 		mov			word ptr[di], 0
-		Make_opposite:
-		add			byte ptr[di+6], 4
-		cmp			byte ptr[di+6], 8
-		jle 		NextObject
-		sub			byte ptr[di+6], 8
+		mov			word ptr[di+2], 0
+		mov			word ptr[di+4], 0
+		mov			word ptr[di+6], 0
+		mov			word ptr[di+8], 0
+		jmp 		NextObject
+		Update:
+		Bullet_move
 		NextObject:
 		add			di, 10
 		sub			cx, 5
 		cmp			cx, 0
 		jg			checkLoop
 	proc_end:
+    popa
+endm
+
+Print_Bullet macro
+	Local PrintLoop, ObjectNotFound
 	lea			di, object
 	mov			cx, LENGTHOF object
 	PrintLoop:								;object Number, xPara, yPara
 		cmp			word ptr[di], 2
 		jne			ObjectNotFound
-		cmp			word ptr[di+8], 1
+		cmp			word ptr[di+8], 5
 		jg 			ObjectNotFound
 		draw_circle word ptr[di+2], word ptr[di+4], 5, 0Ah
 		ObjectNotFound:
@@ -202,5 +264,4 @@ Update_Bullet macro
 		sub			cx, 5
 		cmp			cx, 0
 		jg			PrintLoop
-    popa
 endm

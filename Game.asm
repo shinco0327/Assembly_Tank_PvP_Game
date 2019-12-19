@@ -53,7 +53,7 @@ twoTiger dw 0010h, 0040h
 	dw	0010h, 0040h, 0FFFFh
 circle_count dw 100 dup(?)
 location dw 50 dup(?)
-Screen_Size dw 640, 480
+Screen_Size dw 800, 600
 object dw 50 dup(?)
 game_timer dd ?
 speed_of_Bullet dw 2
@@ -63,6 +63,11 @@ map01 dw 0, 0, 50, 50
 	dw 300, 150, 350, 350
 	dw 550, 0, 580, 250
 	dw 580, 400, 639, 480, 0ffffh
+graph_reg dw 0
+bg_color db 72h
+bound_handler db 5, 8, 7, 6, 1, 4, 3, 2
+vesa_info db 256 dup(?)
+
 .stack 100h
 
 .code
@@ -82,9 +87,16 @@ endm
 main proc
     mov         ax, @data
     mov         ds, ax
-
-    mov     ax, 0012h
-    int     10h
+	mov 		es, ax
+    mov 		ax, 4f01h
+    mov 		cx, 103h
+    lea 		di, vesa_info
+    int 		10h
+	mov 		ax, 0A000h
+	mov 		es, ax
+    mov     	ax, 4f02h
+	mov 		bx, 103h
+    int     	10h
 
     call    init_Page
 	call    GameMode_A
@@ -106,9 +118,10 @@ GameMode_A proc
 	lea			ax, map01
 	mov			mapType, ax
 	setMap 		mapType
-	Create_Bullet 200, 240, 2				;Test Purpose
-	Create_Bullet 550, 400, 8					;Test Purpose
-	Create_Bullet 400, 20, 4				;Test Purpose
+	
+	Create_Bullet 200, 240, 1				;Test Purpose
+	Create_Bullet 550, 400, 2					;Test Purpose
+	Create_Bullet 400, 20, 6				;Test Purpose
 	Create_Bullet 630, 80, 6					;Test Purpose
 	Update_Bullet
 	mov 		ah, 2ch
@@ -140,6 +153,7 @@ GameMode_A proc
 	int			16h
 	cmp			al, 1Bh
 	je			exit_game
+	Create_Bullet 200, 240,1		;Test Purpose
 	jmp			GameA	
 	exit_game:
 	mov			sp, SS:[bp-2]
@@ -166,11 +180,7 @@ draw_Object proc
 draw_Object endp
 
 init_Page proc
-    mov     	ah, 0Bh
-	mov     	bh, 00h
-	mov     	bl, 06h
-	int     	10h
-    
+    set_Background bg_color
     ret
 init_Page endp
 

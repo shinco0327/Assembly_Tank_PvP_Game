@@ -86,36 +86,81 @@ draw_circle macro xPara, yPara, radius, color       ;This macro will print a cir
 endm
 
 draw_pixel macro xPara, yPara, color                ;This macro will write a pixel    
-    Local       write_Xmax, write_Xmin, check_y, write_Ymax, write_Ymin, pixel_out
+    Local store_pixel, Xmax, Xmin, checkY, Ymax, Ymin, printPixel
     pusha
-    mov         cx, xPara
-    cmp         cx, word ptr Screen_Size[0]
-    jg          write_Xmax
-    cmp         cx, 0
-    jl          write_Xmin
-    jmp         check_y
-    write_Xmax:
-    mov         cx, word ptr Screen_Size[0]
-    jmp         check_y
-    write_Xmin:
-    mov         cx, 0
-    check_y: 
-    mov         dx, yPara
-    cmp         dx, word ptr Screen_Size[2]
-    jg          write_Ymax
-    cmp         dx, 0
-    jle         write_Ymin
-    jmp         pixel_out
-    write_Ymax:
-    mov         dx, word ptr Screen_Size[2]
-    jmp         pixel_out
-    write_Ymin:
+    push sp
+    push xPara
+    push yPara
+    mov  bp, sp
+    mov ax, SS:[BP+2]                               ;compare to x
+    cmp ax, word ptr Screen_Size[0]                 ;exceed x max
+    jl checkY
+    jge Xmax
+    cmp ax, 0                                       ;lower than 0
+    jge checkY
+    jl Xmin
+    Xmax:
+    mov ax, word ptr Screen_Size[0]
+    dec ax
+    jmp checkY
+    Xmin:
+    mov ax, 0
+    jmp checkY
+    checkY:
+    mov ax, SS:[bp]
+    cmp ax, word ptr Screen_Size[2]
+    jl printPixel
+    jge Ymax
+    cmp ax, 0
+    jge printPixel
+    jl Ymin
+    Ymax:
+    mov ax, word ptr Screen_Size[2]
+    dec ax
+    jmp printPixel
+    Ymin:
+    mov ax, 0
+    printPixel:
+    mov ax, SS:[BP]
+    mov bx, 800
+    mul bx
+    add ax, word ptr SS:[BP+2]
+    mov bx, 0
+    adc dx, bx
+    push ax
+    cmp dx, graph_reg
+    je  store_pixel
+    mov graph_reg, dx
+    call dword ptr [vesa_info+0ch] ;call far address of window-handling function
+    store_pixel:
+    pop di
+    mov byte ptr es:[di], color
+    mov sp, SS:[BP+4]
+    popa
+endm
+
+set_Background macro color
+    Local       store_process
+    pusha
+
+    cld
+    mov         ax, 0A000h
+    mov         es, ax
     mov         dx, 0
-    jmp         pixel_out
-    pixel_out:
-    mov         al, color
+    store_process:
+    mov         cx, 0ffffh
+    mov         ax, 4f05h
     mov         bx, 0
-    mov         ah, 0Ch
+    int         10h
+    mov         al, color
+    mov         di, 0
+    rep         stosb
+    inc         dx
+    cmp         dx, 7
+    jle         store_process
+    mov         dx, graph_reg
+    mov         ax, 4f05h
+    mov         bx, 0
     int         10h
     popa
 endm
