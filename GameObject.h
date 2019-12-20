@@ -42,6 +42,57 @@ Create_Bullet macro xPara, yPara, Direction                             ;Will dr
 	popa
 endm
 
+Create_Tank macro userID, xPara, yPara, Direction, body_color, gun_color, tire_color
+Local		checkLoop, FindAvailable, NoStorage
+	pusha
+	lea			di, object_tank                                             ;load object storage
+	mov			cx, LENGTHOF object_tank
+	checkLoop:								                            ;object Number, xPara, yPara
+		cmp			word ptr[di], 0                                     ;0 means the storage is unuse
+		je			FindAvailable
+		add			di, 14                                              ;check the next element
+		sub			cx, 7                       
+		cmp			cx, 0
+		jle			NoStorage                                           ;Ran out of storage
+		jmp 		checkLoop                   
+	FindAvailable:
+	mov			word ptr[di], userID                                    
+	mov			word ptr[di+2], xPara
+	mov			word ptr[di+4], yPara
+	mov			word ptr[di+6], Direction
+	mov			word ptr[di+8], body_color
+	mov			word ptr[di+10], gun_color
+	mov			word ptr[di+12], tire_color			
+	NoStorage:
+	popa
+endm
+
+Print_Tank macro
+	Local PrintLoop, ObjectNotFound
+	pusha
+	lea			si, object_tank
+	mov			cx, LENGTHOF object_tank
+	PrintLoop:							
+		cmp			word ptr [si], 0
+		je			ObjectNotFound
+		push 		si
+		push		cx
+		push		word ptr [si+2]				;xPara
+		push		word ptr [si+4]				;yPara
+		push		word ptr [si+6]				;Direction
+		push		word ptr [si+8]				;body
+		push		word ptr [si+10]				;gun
+		push		word ptr [si+12]				;tire
+		invoke		TankProcess
+		pop			cx
+		pop			si
+		ObjectNotFound:
+		add			si, 14
+		sub			cx, 7
+		cmp			cx, 0
+		jg			PrintLoop
+	popa
+endm
 ;The map format
 ;Example:
 ;map01 dw 0, 0, 50, 50     is a square from (0,0) to (50,50)
@@ -75,6 +126,7 @@ endm
 ;Will update the motion of bullet
 Bullet_move macro
 	Local Up, UpRight, Right, DownRight, Down, DownLeft, Left, UpLeft, bullet_set
+	pusha
 	mov			ax, word ptr[di+2]
 	mov			bx, word ptr[di+4]
 	cmp			word ptr[di+6], 1
@@ -124,17 +176,20 @@ Bullet_move macro
 	bullet_set:
 	mov			word ptr[di+2], ax		;x in ax, y in bx
 	mov			word ptr[di+4], bx
+	popa
 endm
+
+
 Update_Bullet macro
-    Local       checkLoop, Check_Collision, MeetBoundary, InYRange, Make_opposite, NextObject
-    Local       proc_end, PrintLoop, ObjectNotFound, L1, Recheck, Update, Make_oppositeX, Make_oppositeY, Recheck2
+    Local       checkLoop, Check_Collision, MeetBoundary, InYRange, Make_opposite, NextObject, L2, InXRange, ObjectOut
+    Local       proc_end, L1, Recheck, Update, Make_oppositeX, Make_oppositeY, Recheck2
     pusha
 	lea			di, offset object 
 	mov			cx, LENGTHOF object
 	checkLoop:								;object Number, xPara, yPara
 		cmp			word ptr[di], 2
 		jne			NextObject
-		draw_circle word ptr[di+2], word ptr[di+4], 5, 72h
+		draw_circle word ptr[di+2], word ptr[di+4], 5, bg_color
 		
 		Check_Collision:
 		mov			ax, word ptr Screen_Size[0]
@@ -230,7 +285,7 @@ Update_Bullet macro
 		MeetBoundary:
 		Bullet_move
 		inc			word ptr[di+8]
-		cmp			word ptr [di+8], 5
+		cmp			word ptr [di+8], 1
 		jle         Update
 		mov			word ptr[di], 0
 		mov			word ptr[di+2], 0
@@ -240,23 +295,31 @@ Update_Bullet macro
 		jmp 		NextObject
 		Update:
 		Bullet_move
+		ObjectOut:
+		cmp			word ptr[di], 2
+		jne			NextObject
+		draw_circle word ptr[di+2], word ptr[di+4], 5, 0Ah
 		NextObject:
 		add			di, 10
 		sub			cx, 5
 		cmp			cx, 0
 		jg			checkLoop
 	proc_end:
+		
     popa
 endm
 
+
+
 Print_Bullet macro
 	Local PrintLoop, ObjectNotFound
+	pusha
 	lea			di, object
 	mov			cx, LENGTHOF object
 	PrintLoop:								;object Number, xPara, yPara
-		cmp			word ptr[di], 2
+		cmp			word ptr[di], 1
 		jne			ObjectNotFound
-		cmp			word ptr[di+8], 5
+		cmp			word ptr[di+8], 10h
 		jg 			ObjectNotFound
 		draw_circle word ptr[di+2], word ptr[di+4], 5, 0Ah
 		ObjectNotFound:
@@ -264,4 +327,5 @@ Print_Bullet macro
 		sub			cx, 5
 		cmp			cx, 0
 		jg			PrintLoop
+	popa
 endm

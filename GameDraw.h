@@ -89,6 +89,7 @@ draw_pixel macro xPara, yPara, color                ;This macro will write a pix
     Local store_pixel, Xmax, Xmin, checkY, Ymax, Ymin, printPixel
     pusha
     push sp
+    push word ptr color
     push xPara
     push yPara
     mov  bp, sp
@@ -128,14 +129,13 @@ draw_pixel macro xPara, yPara, color                ;This macro will write a pix
     mov bx, 0
     adc dx, bx
     push ax
-    cmp dx, graph_reg
-    je  store_pixel
-    mov graph_reg, dx
+    
     call dword ptr [vesa_info+0ch] ;call far address of window-handling function
     store_pixel:
     pop di
-    mov byte ptr es:[di], color
-    mov sp, SS:[BP+4]
+    mov ax, word ptr SS:[BP+4]
+    mov byte ptr es:[di], al
+    mov sp, SS:[BP+6]
     popa
 endm
 

@@ -1,6 +1,6 @@
 .model small
 
-.stack
+.stack 500h
 
 .data
 
@@ -22,10 +22,12 @@ tire_color db 2
 last_body_color db 0
 last_gun_color  db 0
 last_tire_color db 0
+
 Tankvesa_info dd ?
-Tankgraph_reg dw 0
+
 TankScreen_Size dw 800, 600
 extstr1 db "I learn Assembly.", 10, 13, "And, it is a external file$"
+
 
 .code
 
@@ -84,14 +86,12 @@ WrPixel macro xPara, yPara, color                ;This macro will write a pixel
     mov bx, 0
     adc dx, bx
     push ax
-    cmp dx, Tankgraph_reg
-    je  store_pixel
-    mov Tankgraph_reg, dx
     call dword ptr [Tankvesa_info] ;call far address of window-handling function
     store_pixel:
     pop di
 	mov ax, SS:[BP+4]
-    mov byte ptr es:[di], color 
+	mov	bl, color
+    mov byte ptr es:[di], bl 
     mov sp, SS:[BP+6]
     popa
     endm
@@ -341,7 +341,7 @@ up_right_gun1_intit_set:
 	mov di,1	
 	mov bl,gun_color
 up_right_gun1_Print:
-	WrPixel cx,dx,bl
+	WrPixel cx,dx, gun_color
 	inc count
 	inc cx
 	cmp count,di
@@ -390,7 +390,7 @@ up_right_gun3_intit_set:
 	mov di,9
 	mov bl,gun_color
 up_right_gun3_Print:
-	WrPixel cx,dx,bl
+	WrPixel cx,dx,gun_color
 	inc count
 	inc cx
 	cmp count,di
@@ -1786,34 +1786,37 @@ pj5_Init proc
 	ret	4
 pj5_Init endp
 
+
+
 TankProcess proc 
-;TABLE 	dw ONE
-;		dw TWO
-;		dw THREE
-;		dw FOUR
-;		dw FIVE
-;		DW SIX
-;		DW SEVEN
-;		dw EIGHT
 	push		bp
 	mov			bp, sp
 	push 		sp
-	push ax
-	push si
+	push		ax
+	push 		si
+	mov xcount, 0
+	mov ycount,0
+	mov height, 29
+	mov count, 0
+	mov h1, 15
+	mov h2, 21
+  	mov h3, 15
+	mov hcount, 0
+	mov rwidth, 0
 	mov al, byte ptr SS:[BP+4]
-	mov			body_color, al
-	mov al, byte ptr SS:[BP+5]
-	mov			gun_color, al
-	mov al, byte ptr SS:[BP+6]
 	mov			tire_color, al
-	mov ax, word ptr SS:[BP+9]
-	mov			y, 300
-	mov ax, word ptr SS:[BP+11]
-	mov			x, 400
-	mov si, word ptr SS:[BP+7]
+	mov al, byte ptr SS:[BP+6]
+	mov			gun_color, al
+	mov al, byte ptr SS:[BP+8]
+	mov			body_color, al
+	mov ax, word ptr SS:[BP+12]
+	mov			y, ax
+	mov ax, word ptr SS:[BP+14]
+	mov			x, ax
+	mov si, word ptr SS:[BP+10]
 	dec si
 	add si, si
-	jmp ONE
+	jmp TABLE[si]
 	ONE:
 	call print_up
 	jmp exit_Tank
@@ -1839,11 +1842,19 @@ TankProcess proc
 	call print_up_left
 	jmp exit_Tank
 	exit_Tank:
-	pop si
+	pop	si
 	pop ax
-	pop	sp
+	mov sp, SS:[BP-2]
 	pop bp
-	ret 9
+	ret 12
+	TABLE	dw ONE
+			dw TWO
+			dw THREE
+			dw FOUR
+			dw FIVE
+			dw SIX
+			dw SEVEN
+			dw EIGHT
 TankProcess endp
 
 END
