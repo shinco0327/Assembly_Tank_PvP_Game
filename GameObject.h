@@ -22,6 +22,13 @@
 Create_Bullet macro xPara, yPara, Direction                             ;Will draw a bullet
 	Local		checkLoop, FindAvailable, NoStorage
 	pusha
+	push		bp
+	push		sp
+	push		xPara
+	push		yPara
+	push		Direction
+	mov			bp, sp
+
 	lea			di, object                                              ;load object storage
 	mov			cx, LENGTHOF object
 	checkLoop:								                            ;object Number, xPara, yPara
@@ -33,12 +40,17 @@ Create_Bullet macro xPara, yPara, Direction                             ;Will dr
 		jle			NoStorage                                           ;Ran out of storage
 		jmp 		checkLoop                   
 	FindAvailable:
-	mov			word ptr[di], 2                                     
-	mov			word ptr[di+2], xPara
-	mov			word ptr[di+4], yPara
-	mov			word ptr[di+6], Direction
+	mov			word ptr[di], 2 
+	mov			ax, word ptr SS:[BP+4]                                    
+	mov			word ptr[di+2], ax
+	mov			ax, word ptr SS:[BP+2]    
+	mov			word ptr[di+4], ax
+	mov			ax, word ptr SS:[BP]    
+	mov			word ptr[di+6], ax
 	mov			word ptr[di+8], 0000h			
 	NoStorage:
+	mov			sp, word ptr SS:[BP+6]
+	pop			bp
 	popa
 endm
 
@@ -328,4 +340,75 @@ Print_Bullet macro
 		cmp			cx, 0
 		jg			PrintLoop
 	popa
+endm
+
+Erase_Tank macro 
+	pusha
+	xor			ax, ax
+	mov 		al, bg_color
+	push		word ptr [si+2]				;xPara
+	push		word ptr [si+4]				;yPara
+	push		word ptr [si+6]				;Direction
+	push		word ptr ax					;body
+	push		word ptr ax					;gun
+	push		word ptr ax					;tire
+	invoke		TankProcess
+	popa
+endm
+
+
+Discharge_Bullet macro
+	Local Discharge1, Discharge2, Discharge3, Discharge4, Discharge5, Discharge6, Discharge7, Discharge8, Finish
+	mov			di, word ptr[si+6]
+	cmp			di, 1
+	je			Discharge1
+	cmp			di, 2
+	je			Discharge2
+	cmp			di, 3
+	je			Discharge3
+	cmp			di, 4
+	je			Discharge4
+	cmp			di, 5
+	je			Discharge5
+	cmp			di, 6
+	je			Discharge6
+	cmp			di, 7
+	je			Discharge7
+	cmp			di, 8
+	je			Discharge8
+	Discharge1:
+	add			ax, 0
+	sub			bx, 35
+	jmp 		Finish
+	Discharge2:
+	add			ax, 27
+	sub			bx, 25
+	jmp			Finish
+	Discharge3:
+	add			ax, 35
+	add			bx, 2
+	jmp			Finish
+	Discharge4:
+	add			ax, 26
+	add			bx, 26
+	jmp			Finish
+	Discharge5:
+	add			ax, 0
+	add			bx, 35
+	jmp			Finish
+	Discharge6:
+	sub			ax, 26
+	add			bx, 27
+	jmp			Finish
+	Discharge7:
+	sub			ax, 32
+	add			bx, 1
+	jmp			Finish
+	Discharge8:
+	sub			ax, 26
+	sub			bx, 24
+	jmp			Finish
+	Finish:
+	Create_Bullet ax, bx, di
+
 endm

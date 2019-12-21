@@ -1776,10 +1776,12 @@ pj5_Init proc
 	mov			bp, sp
 	push 		sp
 	push ax
+	push ds
 	mov ax, word ptr SS:[BP+4]
 	mov word ptr Tankvesa_info[0], ax
 	mov ax, word ptr SS:[BP+6]
 	mov word ptr Tankvesa_info[2], ax
+	pop ds
 	pop ax
 	pop			sp
 	pop			bp
