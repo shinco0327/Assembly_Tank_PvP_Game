@@ -69,7 +69,7 @@ map01 dw 0, 0, 50, 50
 	dw 250, 0, 300, 150
 	dw 580, 400, 639, 480, 0ffffh
 ;esc w s a d q up down left right  enter
-char_table db 01h, 11h, 1fh, 1eh, 20h, 10h, 48h, 50h, 4bh, 4dh, 1ch
+char_table db 01h, 11h, 1fh, 1eh, 20h, 39h, 48h, 50h, 4bh, 4dh, 1ch
 char_status db 11 dup(0) 
 
 graph_reg dw 0
@@ -151,10 +151,11 @@ main endp
 
 
 Update_Tank macro UserID, Para
-	Local FindLoop, ObjectNotFound, ObjectFound, exit_macro, Forward_Process, Reverse_Process, Left_Process, Right_Process
+	Local FindLoop, ObjectNotFound, ObjectFound, Act_Control, exit_macro, Forward_Process, Reverse_Process, Left_Process, Right_Process
 	Local Forward1, Forward2, Forward3, Forward4, Forward5, Forward6, Forward7, Forward8
 	Local Reverse1, Reverse2, Reverse3, Reverse4, Reverse5, Reverse6, Reverse7, Reverse8
 	Local CheckComplete, Under_Xmax, Above_Xmin, Under_Ymax, DischargeProcess
+	Local checkObstacle, L1, Recheck, InYRange, MeetObstacle
 	pusha
 	lea			si, object_tank
 	mov			cx, LENGTHOF object_tank
@@ -172,6 +173,7 @@ Update_Tank macro UserID, Para
 	mov			ax, word ptr[si+2]
 	mov			bx, word ptr[si+4]
 	mov			cx, Para
+	Act_Control:
 	cmp			cx, 1
 	je			Forward_Process
 	cmp			cx, 3
@@ -290,31 +292,63 @@ Update_Tank macro UserID, Para
 	Discharge_Bullet
 	jmp			CheckComplete
 	exit_macro:
+	push		word ptr[si+2]
+	push		word ptr[si+4]		
 	mov			word ptr[si+2], ax
 	mov			word ptr[si+4], bx
-	mov			ax, Screen_Size[0]
-	sub			ax, 30
-	cmp			word ptr[si+2], ax
+	mov			cx, Screen_Size[0]
+	sub			cx, 30
+	cmp			word ptr[si+2], cx
 	jl			Under_Xmax
-	mov			word ptr[si+2], ax
+	mov			word ptr[si+2], cx
 	Under_Xmax:
-	mov			ax, 30
-	cmp 		word ptr[si+2], ax
+	mov			cx, 30
+	cmp 		word ptr[si+2], cx
 	jge			Above_Xmin
-	mov			word ptr[si+2], ax
+	mov			word ptr[si+2], cx
 	Above_Xmin:
-	mov			ax, Screen_Size[2]
-	sub			ax, 30
-	cmp			word ptr[si+4], ax
+	mov			cx, Screen_Size[2]
+	sub			cx, 30
+	cmp			word ptr[si+4], cx
 	jl			Under_Ymax
-	mov			word ptr[si+4], ax
+	mov			word ptr[si+4], cx
 	Under_Ymax:
-	mov			ax, 30
-	cmp 		word ptr[si+4], ax
-	jg			CheckComplete
-	mov			word ptr[si+4], ax
+	mov			cx, 30
+	cmp 		word ptr[si+4], cx
+	jg			checkObstacle
+	mov			word ptr[si+4], cx
 	
-	
+	checkObstacle:
+	pop			bx
+	pop			ax
+	mov 		di, mapType
+		L1:
+		mov			cx, word ptr[di+4]		;xMax of obstacle
+		add			cx, 20
+		cmp			word ptr[si+2], cx		;if xPosition is bigger than xMax
+		jg			Recheck					;check next obstacle
+		mov			cx, word ptr[di]		;xMin of obstacle
+		sub			cx, 20
+		cmp			word ptr[si+2], cx		;if xPosition is bigger than xMin
+		jge			InYRange				;Mean it is in the range of obstacle in x asix 
+		Recheck:
+		add			di, 8			
+		cmp			word ptr[di], 0FFFFh
+		jne			L1
+		jmp			CheckComplete
+		InYRange:
+		mov			cx, word ptr[di+6]		;YMax of obstacle
+		add			cx, 20
+		cmp			word ptr[si+4], cx		;if yPosition is bigger than yMax
+		jg			Recheck					;check next obstacle
+		mov			cx, word ptr[di+2]		;yMin of obstacle
+		sub 		cx, 20
+		cmp			word ptr[si+4], cx		;if yPosition is bigger than yMin
+		jge			MeetObstacle			;bullet meet obstacle
+		jmp 		Recheck
+	MeetObstacle:
+	mov			word ptr[si+2], ax
+	mov			word ptr[si+4], bx		
 	CheckComplete:
 	Print_Tank
 	popa
@@ -472,10 +506,8 @@ GameMode_A proc
 	setMap 		mapType
 	Create_Tank 1, 500, 500, 5, 2bh, 2fh, 0f7h
 	Create_Tank 2, 100, 100, 2, 24h, 22h, 0DFh
-	Create_Bullet 200, 240, 6				;Test Purpose
-	Create_Bullet 550, 400, 6					;Test Purpose
-	Create_Bullet 400, 20, 6				;Test Purpose
-	Create_Bullet 630, 80, 6					;Test Purpose
+	Create_Bullet 200, 250, 6				;Test Purpose
+	
 	Print_Tank
 	mov 		ah, 2ch
 	int 		21h
@@ -493,7 +525,7 @@ GameMode_A proc
 	mov 		ah, 2ch
 	int 		21h
 	sub			dx, word ptr game_timer[2]
-	cmp 		dx, 3
+	cmp 		dx, 2
 	jge			TimeupA
 	sub			cx, word ptr game_timer[0]
 	jg			TimeupA

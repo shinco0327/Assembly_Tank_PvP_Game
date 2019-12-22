@@ -192,15 +192,17 @@ Bullet_move macro
 endm
 
 
+
 Update_Bullet macro
     Local       checkLoop, Check_Collision, MeetBoundary, InYRange, Make_opposite, NextObject, L2, InXRange, ObjectOut
     Local       proc_end, L1, Recheck, Update, Make_oppositeX, Make_oppositeY, Recheck2
     pusha
-	lea			di, offset object 
+	lea			di, object 
 	mov			cx, LENGTHOF object
 	checkLoop:								;object Number, xPara, yPara
 		cmp			word ptr[di], 2
 		jne			NextObject
+		
 		draw_circle word ptr[di+2], word ptr[di+4], 5, bg_color
 		
 		Check_Collision:
@@ -222,11 +224,11 @@ Update_Bullet macro
 		mov 		si, mapType
 		L1:
 		mov			ax, word ptr[si+4]		;xMax of obstacle
-		add			ax, 5
+		add			ax, 8
 		cmp			word ptr[di+2], ax		;if xPosition is bigger than xMax
 		jg			Recheck					;check next obstacle
 		mov			ax, word ptr[si]		;xMin of obstacle
-		sub			ax, 5
+		sub			ax, 8
 		cmp			word ptr[di+2], ax		;if xPosition is bigger than xMin
 		jge			InYRange				;Mean it is in the range of obstacle in x asix 
 		Recheck:
@@ -308,8 +310,10 @@ Update_Bullet macro
 		Update:
 		Bullet_move
 		ObjectOut:
+		
 		cmp			word ptr[di], 2
 		jne			NextObject
+		Collision_With_Tank word ptr[di+2], word ptr[di+4]
 		draw_circle word ptr[di+2], word ptr[di+4], 5, 0Ah
 		NextObject:
 		add			di, 10
@@ -321,7 +325,61 @@ Update_Bullet macro
     popa
 endm
 
+Collision_With_Tank macro xPara, yPara
+	Local checkLoop, checkNext, xSquare, ySquare
+	pusha
+	push		sp
+	push		word ptr yPara
+	push		word ptr xPara
+	
+	mov			bp, sp
+	mov			si, offset object_tank
+	mov			cx, LENGTHOF object_tank
+	xor			ax, ax
+	xor			bx, bx
+	mov			bl, 28
+	mov			al, 28
+	mul			bl
+	push		ax
+	checkLoop:
+	mov			ax, word ptr[si+2]
+	sub			ax, word ptr SS:[BP]
+	xSquare:
+	mov			bx, ax
+	imul		bx
+	push		dx
+	push		ax
+	mov			ax, word ptr[si+4]
+	sub			ax, word ptr SS:[BP+2]
+	ySquare:
+	mov			bx, ax
+	imul		bx
 
+	pop			bx
+	add			ax, bx
+	pop			bx
+	adc			dx, bx
+
+	
+	cmp			ax, SS:[BP-2]
+	ja			checkNext
+	cmp			dx, 0
+	jg			checkNext
+	xor			ax, ax
+	mov			al, 0Ah
+	mov			word ptr[si+8], ax
+	mov			word ptr[si+10], ax
+	mov			word ptr[si+12], ax
+	Print_Tank
+	checkNext:
+	add			si, 14
+	sub			cx, 7
+	cmp			cx, 0
+	jg			checkLoop
+
+	mov			sp, SS:[BP+4]
+	popa
+endm
 
 Print_Bullet macro
 	Local PrintLoop, ObjectNotFound
@@ -331,7 +389,7 @@ Print_Bullet macro
 	PrintLoop:								;object Number, xPara, yPara
 		cmp			word ptr[di], 1
 		jne			ObjectNotFound
-		cmp			word ptr[di+8], 10h
+		cmp			word ptr[di+8], 1
 		jg 			ObjectNotFound
 		draw_circle word ptr[di+2], word ptr[di+4], 5, 0Ah
 		ObjectNotFound:
