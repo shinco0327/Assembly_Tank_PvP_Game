@@ -13,7 +13,9 @@ include pj5.inc
 .model small
 
 .data
-str1 db "This is a text", 10, 13, "$"
+WelcomeStr 	db "uProcessor Lab Fall, 2019", 10, 13
+			db "By B10707009 and B10707049", 10, 16
+			db "https://github.com/shinco0327/uProcessor_Game", 10, 13, '$'
 twoTiger dw 0010h, 0040h 
 	dw	0020h, 0040h 
 	dw	0030h, 0040h 
@@ -62,12 +64,7 @@ game_timer dw 0, 0, 0, 0, 0, 0
 speed_of_Bullet dw 8
 speed_of_Tank dw 25	
 mapType dw ?
-map01 dw 0, 0, 50, 50
-	dw 100, 300, 150, 480
-	dw 300, 150, 350, 350
-	dw 550, 0, 580, 250
-	dw 250, 0, 300, 150
-	dw 580, 400, 639, 480, 0ffffh
+map dw 0, 0, 50, 50, 100, 300, 150, 480, 300, 150, 350, 350, 550, 0, 580, 250, 250, 0, 300, 150, 580, 400, 639, 480, 0ffffh, 350, 250, 450, 350, 0ffffh 
 ;esc w s a d q up down left right  enter
 char_table db 01h, 11h, 1fh, 1eh, 20h, 39h, 48h, 50h, 4bh, 4dh, 1ch
 char_status db 11 dup(0) 
@@ -87,16 +84,67 @@ bound_handler db 5, 4, 7, 2, 1, 8, 3, 6		;meet x asix
 			  db 5, 8, 7, 6, 1, 4, 3, 2		;meet y asix
 vesa_info db 256 dup(?)
 
+TankStr1 	db "Please customize your tank.", 10, 13, '$'
 .stack 0FFFh
 
 .code
 main proc
+	push		ax
+	push		ax
+	call		Start_Process
+	MainIndex:
+	call    init_Page
+	L1:
+	cmp		char_status[0], 1
+	je		exit_game
+
+	cmp		char_status[10], 1
+
+	jne		L1
+	L2:
+	cmp		char_status[10], 0
+	jne		L2
+	call	Tank_Customize
+	bt		ax, 0
+	jc		MainIndex
+	call	Choose_Map
+	bt		ax, 0
+	jc		MainIndex
+	call    GameMode_A
+	
+	jmp		MainIndex
+    exit_game:
+    cmp		byte ptr char_status[0], 1
+	jne		exit_game
+    mov     ax, 0003h                       ;Back to text mode
+    int     10h
+	pop 	dx								;Restore int 9h
+    pop 	ax								
+    mov 	ds, ax
+    mov 	ah, 25h
+    mov 	al, 09h
+    int 	21h
+    mov     ax, 4c00h                       ;Exit to DOS
+    int     21h
+main endp
+
+Start_Process proc
+	push		bp
+	mov			bp, sp
+	push 		sp
+	mov			ax, 0003h
+	int			10h
+	mov			ax, @data
+	mov			ds, ax
+	lea			dx, WelcomeStr
+	mov 		ah, 09h
+	int 		21h
 	;Handle Keyboard interrupt 9h
 	mov 		ah, 35h						;Get int 9h vector
     mov 		al, 09h
     int 		21h
-    push 		es							;push to stack
-    push 		bx
+	mov			word ptr SS:[BP+6], es
+	mov			word ptr SS:[BP+4], bx
 	mov			ax, @code
 	mov			ds, ax
 	mov			ah, 25h
@@ -117,37 +165,182 @@ main proc
     int     	10h
 	push 		dword ptr vesa_info[0Ch]
 	invoke 		pj5_Init
-	
-	call    init_Page
+	mov			sp, SS:[BP-2]
+	pop			bp
+	ret
+Start_Process endp
+
+Choose_Map proc
+	lea		di, map
+	mov		mapType, di
+	setMap 	mapType
 	L1:
-	cmp		char_status[10], 1
+		.if		char_status[0] == 1
+			set_Background bg_color
+			mov		ax, 1
+			ret	
+		.endif
+		.if		char_status[3] == 1
+			set_Background bg_color
+			lea		cx, map
+			.if		di == cx
+				lea		di, map
+				add		di, SIZEOF map
+			.endif
+			sub		di, 2
+			mov		cx, di
+			sub		cx, offset map
+			shr		cx, 1
+			.if		cx > 0
+				std
+				push	es
+				mov		ax, @data
+				mov		es, ax
+				mov		ax, 0ffffh
+				repne	scasw
+				pop		es
+				cmp		cx, 0
+				jz		exit_Left
+				add		di, 2
+			.endif
+			exit_Left:
+			add		di, 2
+			cld
+			mov		mapType, di
+			setMap 	mapType
+		.endif
 
-	jne		L1
-	L2:
-	cmp		char_status[10], 0
-	jne		L2
+		.if		char_status[4] == 1
+			set_Background bg_color
+			lea		cx, map
+			add		cx, SIZEOF map
+			sub		cx, di
+			shr		cx, 1
+			cld
+			push	es
+			mov		ax, @data
+			mov		es, ax
+			mov		ax, 0ffffh
+			repne	scasw
+			pop		es
+			
+			lea		cx, map
+			add		cx, SIZEOF map
+			.if		di >= cx
+				lea		di, map
+			.endif
+		mov		mapType, di
+		setMap 	mapType
+		.endif
+		
+		cmp		char_status[5], 1
+		jne		L1
+	set_Background bg_color
+	mov		mapType, di
+	xor		ax, ax
+	ret
+Choose_Map endp
 
-	call    GameMode_A
+Tank_Customize proc
+	lea 	dx, TankStr1
+	mov 	ah, 09h
+	int 	21h
+	Clear_object_tank
+	Create_Tank 1, 200, 300, 1, 24h, 22h, 0DFh
+	Create_Tank 2, 600, 300, 1, 2bh, 2fh, 0f7h
+	Print_Tank
+	lea		di, offset object_tank
+	add		di, 8
+	lea		si, offset object_tank
+	add		si, 22
+	xor		ax, ax
+	Start:
+	Print_Tank
+	.if		char_status[0] == 1
+		set_Background bg_color
+		mov		ax, 1
+		ret	
+	.endif
+	.if		char_status[5] == 1
+		btc		ax, 0	
+	.endif
+	.if		char_status[10] == 1
+		btc		ax, 1
+	.endif
+	.if		al == 00000011b
+		jmp		set_Complete
+	.endif
+
+	bt		ax, 0
+	jc		Determine2
+	.if		char_status[1] == 1
+		inc		byte ptr[di]
+		jmp		Determine2
+	.endif
+	.if		char_status[2] == 1
+		dec		byte ptr[di]
+		jmp		Determine2
+	.endif
+	.if		char_status[3] == 1
+		sub		di, 2
+		mov		bx, di
+		sub		bx, offset object_tank
+		.if		bx <= 7
+		add		di, 6
+		.endif				
+		jmp		Determine2
+	.endif
+	.if		char_status[4] == 1
+		add		di, 2
+		mov		bx, di
+		sub		bx, offset object_tank
+		.if		bx >= 14
+		sub		di, 6
+		.endif
+		jmp		Determine2
+	.endif
+
+
 	
+	Determine2:
+	bt		ax, 1
+	jc		Start
 
-    exit_game:
-    cmp		byte ptr char_status[0], 1
-	jne		exit_game
-    mov     ax, 0003h                       ;Back to text mode
-    int     10h
-	pop 	dx								;Restore int 9h
-    pop 	ax								
-    mov 	ds, ax
-    mov 	ah, 25h
-    mov 	al, 09h
-    int 	21h
-    mov     ax, 4c00h                       ;Exit to DOS
-    int     21h
-main endp
-
-
-
-
+	.if		char_status[6] == 1
+		inc		byte ptr[si]
+		jmp		Start
+	.endif
+	.if		char_status[7] == 1
+		dec		byte ptr[si]
+		jmp		Start
+	.endif
+	.if		char_status[8] == 1
+		sub		si, 2
+		mov		bx, si
+		sub		bx, offset object_tank
+		sub		bx, 14
+		.if		bx <= 7
+		add		si, 6
+		.endif				
+		jmp		Start
+	.endif
+	.if		char_status[9] == 1
+		add		si, 2
+		mov		bx, si
+		sub		bx, offset object_tank
+		sub		bx, 14
+		.if		bx >= 14
+		sub		si, 6
+		.endif
+		jmp		Start
+	.endif
+	jmp			Start
+	
+	set_Complete:
+	set_Background bg_color
+	xor		ax, ax
+	ret
+Tank_Customize endp
 
 
 Update_Tank macro UserID, Para
@@ -501,11 +694,8 @@ GameMode_A proc
 	push		bp
 	mov			bp, sp
 	push 		sp
-	lea			ax, map01
-	mov			mapType, ax
 	setMap 		mapType
-	Create_Tank 1, 500, 500, 5, 2bh, 2fh, 0f7h
-	Create_Tank 2, 100, 100, 2, 24h, 22h, 0DFh
+
 	Create_Bullet 200, 250, 6				;Test Purpose
 	
 	Print_Tank
@@ -562,24 +752,6 @@ GameMode_A proc
 	ret
 GameMode_A endp
 
-
-
-draw_Object proc
-	lea			di, object
-	mov			cx, LENGTHOF object
-	checkLoop:								;object Number, xPara, yPara
-		cmp			word ptr[di], 0
-		je			ObjectNotFound
-		draw_circle word ptr[di+2], word ptr[di+4], 5, 0Ah
-		ObjectNotFound:
-		add			di, 8
-		sub			cx, 4
-		cmp			cx, 0
-		jg			checkLoop
-	proc_end:
-	ret
-draw_Object endp
-
 init_Page proc
     set_Background bg_color
     ret
@@ -628,10 +800,6 @@ MyInterrupt proc
     iret
 MyInterrupt endp
 
-font_set proc 
-	pusha
-	popa
-    ret
-font_set endp
+
 include pj5.asm
 end main

@@ -79,6 +79,19 @@ Local		checkLoop, FindAvailable, NoStorage
 	popa
 endm
 
+Clear_object_tank macro
+	pusha
+	push		es
+	mov			ax, @data
+	mov			es, ax
+	lea			di, object_tank
+	mov			cx, LENGTHOF object_tank
+	mov			ax, 0
+	rep			stosw
+	pop			es
+	popa
+endm
+
 Print_Tank macro
 	Local PrintLoop, ObjectNotFound
 	pusha
