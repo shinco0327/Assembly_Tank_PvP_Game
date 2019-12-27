@@ -1,0 +1,10 @@
+print_up_right      PROTO
+print_up_left       PROTO
+print_down_right    PROTO
+print_down_left     PROTO 
+print_up            PROTO
+print_down          PROTO
+print_left          PROTO
+print_right         PROTO
+pj5_Init            PROTO
+TankProcess         PROTO 
