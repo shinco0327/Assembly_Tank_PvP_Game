@@ -28,6 +28,10 @@ Tankvesa_info dd ?
 TankScreen_Size dw 800, 600
 extstr1 db "I learn Assembly.", 10, 13, "And, it is a external file$"
 
+melody dw 0000, 9121, 8126, 7239, 6833, 6087, 5423, 4831, 4560, 4063, 3619, 3416, 3043, 2711, 2415, 2280, 2031, 1809, 1715, 1521, 1355, 1207
+musicOffset dw ?
+M_GotShoot dw 0ff87h, 0005h, 0100h, 0ffffh
+o_time dw ?
 
 .code
 
@@ -1858,6 +1862,182 @@ TankProcess proc
 			dw SEVEN
 			dw EIGHT
 TankProcess endp
+
+musicInit proc 
+    push	bp
+	mov		bp, sp
+	push 	sp
+    push    di
+	GotShoot_Music:
+    lea     di, M_GotShoot
+    mov     musicOffset, di
+    pop     di   
+	mov     sp, SS:[BP-2]
+    pop     bp
+	ret     2
+musicInit endp
+
+Playmusic proc
+    push	bp
+	mov		bp, sp
+	push 	sp
+    push    di
+    mov     di, musicOffset
+    .if		word ptr [di] != 0ff87h
+	mov     ah, 2ch
+	int     21h
+	cmp     dx, o_time
+	jg      continue
+	add     o_time, 0E890h
+	xchg    dx, o_time
+	continue:
+	sub     dx, o_time
+	cmp     dx, word ptr[di-2]
+	jl      Exit_process
+	.else
+	add		di, 2
+	.endif
+    START:
+	.if     word ptr [di] == 0ffffh
+        in      al, 61h ; Turn off note (get value from; port 61h).
+ 	    and     al, 11111100b ; Reset bits 1 and 0.
+ 	    out     61h, al ; Send new value.
+        jmp     Exit_process
+    .endif
+	mov		bx, [di]
+	cmp		bx, 0000h
+	jne     Not_mute
+	in      al, 61h ; Turn off note (get value from; port 61h).
+ 	and     al, 11111100b ; Reset bits 1 and 0.
+ 	out     61h, al ; Send new value.
+	mov     ah, 2ch
+	int     21h
+	mov     o_time, dx
+	jmp     Exit_process
+	Not_mute:
+	cmp 	bx, 0010h
+	jge		middleF
+	jmp		output_melody
+	middleF: 
+	cmp		bx, 0100h
+	jge		highF
+	mov     cl, 4
+	shr		bx, cl
+	add		bx, 7
+	jmp		output_melody
+	highF:	
+	mov     cl, 8
+	shr		bx, cl
+	add		bx, 14
+	output_melody:
+	shl		bx, 1
+	add		bx, offset melody
+	mov		ax, [bx]
+	out		42h, al
+	mov		al, ah
+	out		42h, al
+	in 		al, 61h
+
+	or 		al, 00000011b
+	out     61h, al ; Send new value.
+
+	mov     ah, 2ch
+	int     21h
+	mov     o_time, dx
+
+ 	
+
+ 	
+	add     di, 4
+    mov     musicOffset, di
+
+
+	
+
+    Exit_process:
+    pop     di   
+	mov     sp, SS:[BP-2]
+    pop     bp
+	ret     
+Playmusic endp
+
+PlayLoopMusic proc
+	push	bp
+	mov		bp, sp
+	push 	sp
+    push    di
+	mov		di, musicOffset
+	.if		word ptr[di] == 0ff87h
+			add di, 2
+	.endif
+	START:
+	mov		bx, [di]
+	cmp		bx, 0000h
+	jne     Not_mute
+	in al, 61h ; Turn off note (get value from; port 61h).
+ 	and al, 11111100b ; Reset bits 1 and 0.
+ 	out 61h, al ; Send new value.
+	mov ah, 2ch
+	int 21h
+	mov o_time, dx
+	jmp dummy
+	Not_mute:
+	cmp 	bx, 0010h
+	jge		middleF
+	jmp		output_melody
+	middleF: 
+	cmp		bx, 0100h
+	jge		highF
+	mov cl, 4
+	shr		bx, cl
+	add		bx, 7
+	jmp		output_melody
+	highF:	
+	mov cl, 8
+	shr		bx, cl
+	add		bx, 14
+	output_melody:
+	shl		bx, 1
+	add		bx, offset melody
+	mov		ax, [bx]
+	out		42h, al
+	mov		al, ah
+	out		42h, al
+	in 		al, 61h
+
+	or 		al, 00000011b
+	out 61h, al ; Send new value.
+
+	mov ah, 2ch
+	int 21h
+	mov o_time, dx
+
+ 	dummy:
+	mov ah, 2ch
+	int 21h
+	cmp dx, o_time
+	jg continue
+	add o_time, 0E890h
+	xchg dx, o_time
+	continue:
+	sub dx, o_time
+	cmp dx, word ptr[di+2]
+	jl dummy
+
+ 	
+	add di, 4
+	cmp word ptr[di], 0FFFFh
+	jne START
+
+	in al, 61h ; Turn off note (get value from; port 61h).
+ 	and al, 11111100b ; Reset bits 1 and 0.
+ 	out 61h, al ; Send new value.
+	pop     di   
+	mov     sp, SS:[BP-2]
+    pop     bp
+	ret     
+PlayLoopMusic endp
+
 
 END
 

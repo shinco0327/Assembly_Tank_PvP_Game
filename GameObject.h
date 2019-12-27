@@ -79,15 +79,20 @@ Local		checkLoop, FindAvailable, NoStorage
 	popa
 endm
 
-Clear_object_tank macro
+Clear_All_Object macro
 	pusha
 	push		es
-	mov			ax, @data
+	mov			ax, ds
 	mov			es, ax
+	cld
+	lea			di, object
+	mov			cx, sizeof object
+	mov			al, 0
+	rep			stosb
 	lea			di, object_tank
-	mov			cx, LENGTHOF object_tank
-	mov			ax, 0
-	rep			stosw
+	mov			cx, sizeof object_tank
+	mov			al, 0
+	rep			stosb
 	pop			es
 	popa
 endm
@@ -380,19 +385,15 @@ Collision_With_Tank macro xPara, yPara
 	jg			checkNext
 	xor			ax, ax
 	mov			al, 0Ah
+	mov			word ptr[di], 0
 	mov			word ptr[si+8], ax
 	mov			word ptr[si+10], ax
 	mov			word ptr[si+12], ax
 	mov			word ptr SS:[BP+8], si
 	Print_Tank
-	mov			cx, 0080h
-	L1:
-		push		cx
-		mov			cx, 0ffffh
-		L2:
-		loop		L2
-		pop			cx
-	loop		L1
+	push		0
+	invoke		musicInit
+	invoke		PlayLoopMusic
 	mov			sp, SS:[BP+4]
 	popa
 	jmp			GameSet

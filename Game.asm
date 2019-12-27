@@ -9,6 +9,7 @@ include .\INCLUDE\Irvine16.inc
 include GameDraw.h
 include	GameObject.h
 include pj5.inc
+;include	GMusic.inc
 
 .model small
 
@@ -304,7 +305,7 @@ Tank_Customize proc
 	lea 	dx, TankStr1
 	mov 	ah, 09h
 	int 	21h
-	Clear_object_tank
+	Clear_All_Object
 	Create_Tank 1, 200, 300, 1, 24h, 22h, 0DFh
 	Create_Tank 2, 600, 300, 1, 2bh, 2fh, 0f7h
 	Print_Tank
@@ -753,7 +754,6 @@ GameMode_A proc
 	mov			bp, sp
 	push 		sp
 	setMap 		mapType
-	
 	Print_Tank
 	mov 		ah, 2ch
 	int 		21h
@@ -763,7 +763,7 @@ GameMode_A proc
 	mov			word ptr game_timer[6], dx
 	mov			word ptr game_timer[8], cx
 	mov			word ptr game_timer[10], dx
-	Update_Bullet
+	
 	GameA:
 	
 	
