@@ -64,7 +64,11 @@ game_timer dw 0, 0, 0, 0, 0, 0
 speed_of_Bullet dw 8
 speed_of_Tank dw 25	
 mapType dw ?
-map dw 0, 0, 50, 50, 100, 300, 150, 480, 300, 150, 350, 350, 550, 0, 580, 250, 250, 0, 300, 150, 580, 400, 639, 480, 0ffffh, 350, 250, 450, 350, 0ffffh 
+map dw 350, 250, 450, 350, 150, 0, 200, 350, 600, 400, 650, 600, 0ffffh
+	dw 0, 0, 50, 50, 100, 300, 150, 480, 300, 150, 350, 350, 550, 0, 580, 250, 250, 0, 300, 150, 580, 400, 639, 480, 0ffffh
+	dw 375, 200, 425, 400, 250, 200, 375, 250, 250, 350, 375, 400, 425, 200, 550, 250, 425, 350, 550, 400, 175, 75, 225, 125, 375, 0, 425, 50, 575, 75, 625, 125, 175, 475, 225, 525, 375, 550, 425, 600, 575, 475, 625, 525, 0ffffh
+	dw 100, 175, 125, 425, 500, 175, 525, 425, 125, 175, 300, 200, 125, 290, 300, 310, 125, 400, 300, 425, 525, 175, 700, 200, 525, 290, 700, 310, 525, 400, 700, 425, 0ffffh, 0FF87h 
+TankInit_set dw 50, 40, 5, 750, 560, 1, 150, 40, 5, 700, 40, 5, 300, 300, 7, 500, 300, 3, 250, 250, 3, 650, 350, 3
 ;esc w s a d q up down left right  enter
 char_table db 01h, 11h, 1fh, 1eh, 20h, 39h, 48h, 50h, 4bh, 4dh, 1ch
 char_status db 11 dup(0) 
@@ -110,6 +114,7 @@ main proc
 	call	Choose_Map
 	bt		ax, 0
 	jc		MainIndex
+	call	SetTank_Position
 	call    GameMode_A
 	
 	jmp		MainIndex
@@ -172,6 +177,18 @@ Start_Process endp
 
 Choose_Map proc
 	lea		di, map
+	push	es
+	mov		ax, @data
+	mov		es, ax
+	cld
+	mov		cx, 0FFFFh
+	mov		ax, 0FF87h
+	repne	scasw
+	sub		di, 2
+	mov		dx, di
+	sub		dx,	offset map
+	pop		es
+	lea		di, map
 	mov		mapType, di
 	setMap 	mapType
 	L1:
@@ -182,12 +199,13 @@ Choose_Map proc
 		.endif
 		.if		char_status[3] == 1
 			set_Background bg_color
-			lea		cx, map
-			.if		di == cx
+			mov		cx, di
+			sub		cx, offset map
+			.if		cx <= 0
 				lea		di, map
-				add		di, SIZEOF map
+				add		di, dx
 			.endif
-			sub		di, 2
+			sub		di, 4
 			mov		cx, di
 			sub		cx, offset map
 			shr		cx, 1
@@ -201,10 +219,9 @@ Choose_Map proc
 				pop		es
 				cmp		cx, 0
 				jz		exit_Left
-				add		di, 2
+				add		di, 4
 			.endif
 			exit_Left:
-			add		di, 2
 			cld
 			mov		mapType, di
 			setMap 	mapType
@@ -213,7 +230,7 @@ Choose_Map proc
 		.if		char_status[4] == 1
 			set_Background bg_color
 			lea		cx, map
-			add		cx, SIZEOF map
+			add		cx, dx
 			sub		cx, di
 			shr		cx, 1
 			cld
@@ -225,7 +242,7 @@ Choose_Map proc
 			pop		es
 			
 			lea		cx, map
-			add		cx, SIZEOF map
+			add		cx, dx
 			.if		di >= cx
 				lea		di, map
 			.endif
@@ -241,6 +258,48 @@ Choose_Map proc
 	ret
 Choose_Map endp
 
+SetTank_Position proc
+	push	di
+	mov		cx, di
+	sub		cx, offset map
+	.if		cx > 0
+		mov		cx, di
+		sub		cx, offset map
+		mov		bx, 0
+		L1:
+			.if		word ptr[di] == 0ffffh
+				inc		bx
+			.endif
+			sub		di, 2
+		loop 	L1
+	.else
+		mov		bx, 0
+	.endif
+	push	bx
+	mov		cx, 3
+	shl		bx, cl
+	pop		ax
+	mov		cx, 2
+	shl		ax, cl
+	add		bx, ax
+	lea		di, object_tank
+	lea		si, TankInit_set
+	add		si, bx
+	push	es
+	mov		ax, @data
+	mov		es, ax
+	cld
+	mov		cx, 3
+	add		di, 2
+	rep		movsw
+	add		di, 8 
+	mov		cx, 3
+	rep		movsw
+	pop		es
+	pop		di
+	ret
+SetTank_Position endp
+
 Tank_Customize proc
 	lea 	dx, TankStr1
 	mov 	ah, 09h
@@ -255,7 +314,6 @@ Tank_Customize proc
 	add		si, 22
 	xor		ax, ax
 	Start:
-	Print_Tank
 	.if		char_status[0] == 1
 		set_Background bg_color
 		mov		ax, 1
@@ -275,10 +333,12 @@ Tank_Customize proc
 	jc		Determine2
 	.if		char_status[1] == 1
 		inc		byte ptr[di]
+		Print_Tank
 		jmp		Determine2
 	.endif
 	.if		char_status[2] == 1
 		dec		byte ptr[di]
+		Print_Tank
 		jmp		Determine2
 	.endif
 	.if		char_status[3] == 1
@@ -308,10 +368,12 @@ Tank_Customize proc
 
 	.if		char_status[6] == 1
 		inc		byte ptr[si]
+		Print_Tank
 		jmp		Start
 	.endif
 	.if		char_status[7] == 1
 		dec		byte ptr[si]
+		Print_Tank
 		jmp		Start
 	.endif
 	.if		char_status[8] == 1
@@ -550,11 +612,7 @@ GameA_Keyboard macro
 	Local		exit_macro, checkP1_Down, checkP1_Down, checkP1_Left, checkP1_Right
 	Local		checkP2_Up, checkP2_Down, checkP2_Left, checkP2_Right, checkP2_Discharge
 	Local		P1_Left_Write, P1_Right_Write, P2_Left_Write, P2_Right_Write, P1_Discharge_Write, P2_Discharge_Write
-	;mov 		ah, 11h
-	;int 		16h
-	;jz			exit_macro
-	;mov			ah, 10h
-	;int			16h
+
 	cmp			byte ptr char_status[0], 1
 	je			exit_game
 	cmp			byte ptr char_status[1], 1
@@ -695,8 +753,6 @@ GameMode_A proc
 	mov			bp, sp
 	push 		sp
 	setMap 		mapType
-
-	Create_Bullet 200, 250, 6				;Test Purpose
 	
 	Print_Tank
 	mov 		ah, 2ch
@@ -746,6 +802,34 @@ GameMode_A proc
 	mov 		word ptr game_timer[8], cx
 	mov			word ptr game_timer[10], dx
 	jmp			GameA
+
+	GameSet:
+	push		si
+	set_Background bg_color
+	pop			si
+	sub			si, offset object_tank
+	.if			si == 0
+		mov			word ptr object_tank[16], 400
+		mov			word ptr object_tank[18], 300
+		mov			word ptr object_tank[20], 1
+		mov			word ptr object_tank[si], 0
+		Print_Tank
+		wait_player2:
+		cmp			char_status[10], 1
+		jne			wait_player2
+	.endif
+	.if			si == 14
+		mov			word ptr object_tank[2], 400
+		mov			word ptr object_tank[4], 300
+		mov			word ptr object_tank[6], 1
+		mov			word ptr object_tank[si], 0
+		Print_Tank
+		wait_player1:
+		cmp			char_status[5], 1
+		jne			wait_player1
+	.endif
+	
+
 	exit_game:
 	mov			sp, SS:[bp-2]
 	pop			bp

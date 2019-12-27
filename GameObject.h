@@ -339,7 +339,7 @@ Update_Bullet macro
 endm
 
 Collision_With_Tank macro xPara, yPara
-	Local checkLoop, checkNext, xSquare, ySquare
+	Local checkLoop, checkNext, xSquare, ySquare, L1, L2
 	pusha
 	push		sp
 	push		word ptr yPara
@@ -383,7 +383,19 @@ Collision_With_Tank macro xPara, yPara
 	mov			word ptr[si+8], ax
 	mov			word ptr[si+10], ax
 	mov			word ptr[si+12], ax
+	mov			word ptr SS:[BP+8], si
 	Print_Tank
+	mov			cx, 0080h
+	L1:
+		push		cx
+		mov			cx, 0ffffh
+		L2:
+		loop		L2
+		pop			cx
+	loop		L1
+	mov			sp, SS:[BP+4]
+	popa
+	jmp			GameSet
 	checkNext:
 	add			si, 14
 	sub			cx, 7
