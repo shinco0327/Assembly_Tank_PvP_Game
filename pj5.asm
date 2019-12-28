@@ -31,6 +31,19 @@ extstr1 db "I learn Assembly.", 10, 13, "And, it is a external file$"
 melody dw 0000, 9121, 8126, 7239, 6833, 6087, 5423, 4831, 4560, 4063, 3619, 3416, 3043, 2711, 2415, 2280, 2031, 1809, 1715, 1521, 1355, 1207
 musicOffset dw ?
 M_GotShoot dw 0ff87h, 0005h, 0100h, 0ffffh
+M_Welcome	dw 0ff87h, 0050h, 0010h
+			dw 0000h, 0002h
+			dw 0050h, 0010h
+			dw 0000h, 0002h
+			dw 0030h, 0010h
+			dw 0000h, 0002h
+			dw 0030h, 0010h
+			dw 0000h, 0002h
+			dw 0020h, 0010h
+			dw 0000h, 0002h
+			dw 0020h, 0010h
+			dw 0000h, 0002h
+			dw 0010h, 0080h, 0ffffh
 o_time dw ?
 
 .code
@@ -1868,13 +1881,26 @@ musicInit proc
 	mov		bp, sp
 	push 	sp
     push    di
+	push	si
+	mov		si, SS:[BP+4]
+	shl		si, 1
+	jmp		M_table[si]
 	GotShoot_Music:
     lea     di, M_GotShoot
     mov     musicOffset, di
+	jmp		Exit_process
+	Welcome_Music:
+    lea     di, M_Welcome
+    mov     musicOffset, di
+	jmp		Exit_process
+	Exit_process:
+	pop		si
     pop     di   
 	mov     sp, SS:[BP-2]
     pop     bp
 	ret     2
+	M_table	dw GotShoot_Music
+			dw Welcome_Music
 musicInit endp
 
 Playmusic proc

@@ -8,6 +8,7 @@
 include .\INCLUDE\Irvine16.inc
 include GameDraw.h
 include	GameObject.h
+include	GamePrint.h
 include pj5.inc
 ;include	GMusic.inc
 
@@ -15,8 +16,11 @@ include pj5.inc
 
 .data
 WelcomeStr 	db "uProcessor Lab Fall, 2019", 10, 13
-			db "By B10707009 and B10707049", 10, 16
-			db "https://github.com/shinco0327/uProcessor_Game", 10, 13, '$'
+			db "By B10707009 and B10707049", 10, 10, 13
+			db "Recommend running the program on DOSBOX.", 10, 13
+			db "Download DOSBOX at https://www.dosbox.com/",10, 10, 13
+			db "Explore Program on https://github.com/shinco0327/uProcessor_Game", 10, 13, '$'
+NotSupportStr db "Your computer does not support VESA SuperVGA. Press any key to exit.", 10, 13, '$'
 twoTiger dw 0010h, 0040h 
 	dw	0020h, 0040h 
 	dw	0030h, 0040h 
@@ -89,7 +93,12 @@ bound_handler db 5, 4, 7, 2, 1, 8, 3, 6		;meet x asix
 			  db 5, 8, 7, 6, 1, 4, 3, 2		;meet y asix
 vesa_info db 256 dup(?)
 
+MenuStr1	db "Press space and enter simultaneously to start a new game", 10, 13, '$'
+MenuStr2	db "Press s for tutorial", 10, 13, '$'
+MenuStr3	db "Press esc to exit the game", 10, 13, '$'
 TankStr1 	db "Please customize your tank.", 10, 13, '$'
+mapStr1 	db "Please select map", 10, 13, '$'
+mapStr2		db 'Once you have determined the map, player 1 please press the space.', 10, 13 , '$'
 .stack 0FFFh
 
 .code
@@ -99,27 +108,31 @@ main proc
 	call		Start_Process
 	MainIndex:
 	call    init_Page
+	MainIndexLoop:
 	L1:
 	cmp		char_status[0], 1
 	je		exit_game
 
-	cmp		char_status[10], 1
-
-	jne		L1
-	L2:
-	cmp		char_status[10], 0
-	jne		L2
-	call	Tank_Customize
-	bt		ax, 0
-	jc		MainIndex
-	call	Choose_Map
-	bt		ax, 0
-	jc		MainIndex
-	call	SetTank_Position
-	call    GameMode_A
-	
-	jmp		MainIndex
-    exit_game:
+	.if		char_status[5] == 1 && char_status[10] == 1
+		L2:
+			.if		char_status[5] == 0 && char_status[10] == 0
+				call	Tank_Customize
+				bt		ax, 0
+				jc		MainIndex
+				call	Choose_Map
+				bt		ax, 0
+				jc		MainIndex
+				call	SetTank_Position
+				call    GameMode_A
+				jmp		MainIndex
+			.endif
+			cmp		char_status[0], 1
+			je		exit_game
+		jmp		L2
+	.endif
+	jmp		MainIndexLoop
+    
+	exit_game:
     cmp		byte ptr char_status[0], 1
 	jne		exit_game
     mov     ax, 0003h                       ;Back to text mode
@@ -164,19 +177,41 @@ Start_Process proc
     mov 		cx, 103h
     lea 		di, vesa_info
     int 		10h
+	push 		dword ptr vesa_info[0Ch]
+	invoke 		pj5_Init
+	push		1
+	invoke 		musicInit
+	invoke		PlayLoopMusic
 	mov 		ax, 0A000h
 	mov 		es, ax
     mov     	ax, 4f02h
 	mov 		bx, 103h					;800*600 256 colors
     int     	10h
-	push 		dword ptr vesa_info[0Ch]
-	invoke 		pj5_Init
+	.if			al != 4fh || ah == 01h
+		mov     ax, 0003h                       ;Back to text mode
+    	int     10h
+		mov		ah, 09h
+		lea		dx, NotSupportStr
+		int		21h
+		mov 	dx,	word ptr SS:[BP+4]			;Restore int 9h
+    	mov 	ax, word ptr SS:[BP+6]								
+    	mov 	ds, ax
+    	mov 	ah, 25h
+    	mov 	al, 09h
+    	int 	21h
+		mov		ah, 10h
+		int 	16h
+    	mov     ax, 4c00h                       ;Exit to DOS
+    	int     21h
+	.endif
 	mov			sp, SS:[BP-2]
 	pop			bp
 	ret
 Start_Process endp
 
 Choose_Map proc
+	SetCursor 0, 0
+	PrintString mapStr1
 	lea		di, map
 	push	es
 	mov		ax, @data
@@ -193,6 +228,8 @@ Choose_Map proc
 	mov		mapType, di
 	setMap 	mapType
 	L1:
+		SetCursor 20, 36
+		PrintString mapStr2
 		.if		char_status[0] == 1
 			set_Background bg_color
 			mov		ax, 1
@@ -302,9 +339,9 @@ SetTank_Position proc
 SetTank_Position endp
 
 Tank_Customize proc
-	lea 	dx, TankStr1
-	mov 	ah, 09h
-	int 	21h
+	set_Background 00h
+	SetCursor 0, 0
+	PrintString TankStr1
 	Clear_All_Object
 	Create_Tank 1, 200, 300, 1, 24h, 22h, 0DFh
 	Create_Tank 2, 600, 300, 1, 2bh, 2fh, 0f7h
@@ -837,7 +874,17 @@ GameMode_A proc
 GameMode_A endp
 
 init_Page proc
-    set_Background bg_color
+    set_Background 00h
+	Clear_All_Object
+	Create_Tank 1, 50, 550, 2, 24h, 22h, 0DFh
+	Create_Tank 2, 750, 550, 8, 2bh, 2fh, 0f7h
+	Print_Tank
+	SetCursor 22, 28
+	PrintString MenuStr1
+	SetCursor 40, 32
+	PrintString MenuStr2
+	SetCursor 37, 36
+	PrintString MenuStr3
     ret
 init_Page endp
 
