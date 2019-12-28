@@ -72,9 +72,12 @@ Local		checkLoop, FindAvailable, NoStorage
 	mov			word ptr[di+2], xPara
 	mov			word ptr[di+4], yPara
 	mov			word ptr[di+6], Direction
-	mov			word ptr[di+8], body_color
-	mov			word ptr[di+10], gun_color
-	mov			word ptr[di+12], tire_color			
+	mov			ax, body_color
+	mov			word ptr[di+8], ax
+	mov			ax, gun_color
+	mov			word ptr[di+10], ax
+	mov			ax, tire_color
+	mov			word ptr[di+12], ax			
 	NoStorage:
 	popa
 endm

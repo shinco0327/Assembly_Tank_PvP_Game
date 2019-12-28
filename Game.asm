@@ -92,6 +92,10 @@ bg_color db 72h
 bound_handler db 5, 4, 7, 2, 1, 8, 3, 6		;meet x asix
 			  db 5, 8, 7, 6, 1, 4, 3, 2		;meet y asix
 vesa_info db 256 dup(?)
+file_in dw 10 dup(?)
+file_handle dw ?
+file_name db "GameData.txt", 0
+file_default dw 0ff87h, 24h, 22h, 0DFh, 2bh, 2fh, 0f7h
 
 MenuStr1	db "Press space and enter simultaneously to start a new game", 10, 13, '$'
 MenuStr2	db "Press s for tutorial", 10, 13, '$'
@@ -107,6 +111,7 @@ main proc
 	push		ax
 	call		Start_Process
 	MainIndex:
+	call	GetFile
 	call    init_Page
 	MainIndexLoop:
 	L1:
@@ -342,9 +347,15 @@ Tank_Customize proc
 	set_Background 00h
 	SetCursor 0, 0
 	PrintString TankStr1
-	Clear_All_Object
-	Create_Tank 1, 200, 300, 1, 24h, 22h, 0DFh
-	Create_Tank 2, 600, 300, 1, 2bh, 2fh, 0f7h
+	;Clear_All_Object
+	;Create_Tank 1, 200, 300, 1, 24h, 22h, 0DFh
+	;Create_Tank 2, 600, 300, 1, 2bh, 2fh, 0f7h
+	mov 	word ptr object_tank[2], 200
+	mov 	word ptr object_tank[4], 300
+	mov 	word ptr object_tank[6], 1
+	mov 	word ptr object_tank[16], 600
+	mov 	word ptr object_tank[18], 300
+	mov 	word ptr object_tank[20], 1
 	Print_Tank
 	lea		di, offset object_tank
 	add		di, 8
@@ -437,6 +448,31 @@ Tank_Customize proc
 	jmp			Start
 	
 	set_Complete:
+	push 	es
+	mov		ax, @data
+	mov		es, ax
+	lea		di, file_in[2]
+	lea		si, object_tank[8]
+	mov		cx, 3
+	cld
+	rep		movsw
+	add		di, 2
+	lea		si, object_tank[22] 
+	mov		cx, 3
+	rep		movsw
+	pop		es
+	mov 	ah, 3Dh
+    mov 	al, 2
+    lea 	dx, file_name
+    int 	21h
+    mov 	bx, file_handle
+    mov 	cx, 14
+    lea 	dx, file_in
+    mov 	ah, 40h
+    int 	21h
+    mov 	ah, 3Eh
+    mov 	bx, file_handle
+    int 	21h
 	set_Background bg_color
 	xor		ax, ax
 	ret
@@ -784,6 +820,52 @@ GameA_Keyboard macro
 endm
 
 
+GetFile proc
+	Open_FIle:
+    mov ah, 3Dh
+    mov al, 2
+    lea dx, file_name
+    int 21h
+    mov file_handle, ax
+    jc NO_File
+    jnc FindFIle
+    NO_File:
+    mov ah, 3ch
+    mov cx, 7
+    lea dx, file_name
+    int 21h
+    mov ah, 3Dh
+    mov al, 2
+    lea dx, file_name
+    int 21h
+    mov file_handle, ax
+    mov ah, 40h
+    mov bx, file_handle
+    mov cx, 14
+    lea dx, file_default
+    int 21h
+    mov ah, 3Eh
+    mov bx, file_handle
+    int 21h
+    jmp Open_FIle
+    FindFIle:
+    mov ah, 3fh
+    mov bx, file_handle
+    mov cx, 14
+    lea dx, file_in
+    int 21h
+    .if word ptr file_in[0]!= 0ff87h
+        mov ah, 3Eh
+        mov bx, file_handle
+        int 21h
+        jmp NO_File
+    .endif
+    mov ah, 3Eh
+    mov bx, file_handle
+    int 21h
+	ret
+GetFile endp
+
 
 
 GameMode_A proc
@@ -876,8 +958,8 @@ GameMode_A endp
 init_Page proc
     set_Background 00h
 	Clear_All_Object
-	Create_Tank 1, 50, 550, 2, 24h, 22h, 0DFh
-	Create_Tank 2, 750, 550, 8, 2bh, 2fh, 0f7h
+	Create_Tank 1, 50, 550, 2, word ptr file_in[2], word ptr file_in[4], word ptr file_in[6]
+	Create_Tank 2, 750, 550, 8, word ptr file_in[8], word ptr file_in[10], word ptr file_in[12]
 	Print_Tank
 	SetCursor 22, 28
 	PrintString MenuStr1
