@@ -15,51 +15,33 @@ include pj5.inc
 .model small
 
 .data
-WelcomeStr 	db "uProcessor Lab Fall, 2019", 10, 13
-			db "By B10707009 and B10707049", 10, 10, 13
+WelcomeStr 	db "TANK", 10, 10, 13
+			db "National Taiwan University of Science Technology", 10, 13
+			db "Department of Electrical Engineering", 10, 10, 13
+			db "uProcessor Lab Fall, 2019", 10, 13
+			db "By", 10, 13
+			db "B10707009 HISU MIN YANG said, I got a big dick!", 10, 13
+			db "B10707049 YU SHAN HUANG said, I learn Assembly!", 10, 10, 13
 			db "Recommend running the program on DOSBOX.", 10, 13
 			db "Download DOSBOX at https://www.dosbox.com/",10, 10, 13
-			db "Explore Program on https://github.com/shinco0327/uProcessor_Game", 10, 13, '$'
+			db "Explore this program on https://github.com/shinco0327/uProcessor_Game", 10, 13, '$'
+WelcomeStr2 db "Press esc to exit", '$'
 NotSupportStr db "Your computer does not support VESA SuperVGA. Press any key to exit.", 10, 13, '$'
-twoTiger dw 0010h, 0040h 
-	dw	0020h, 0040h 
-	dw	0030h, 0040h 
-	dw	0010h, 0040h
-	dw	0000h, 0010h
-	dw	0010h, 0040h
-	dw	0020h, 0040h 
-	dw	0030h, 0040h
-	dw	0010h, 0040h
-	dw	0000h, 0010h
-	dw	0030h, 0040h 
-	dw	0040h, 0040h 
-	dw	0050h, 0040h
-	dw	0000h, 0010h
-	dw	0030h, 0040h 
-	dw	0040h, 0040h 
-	dw	0050h, 0040h
-	dw	0000h, 0010h
-	dw	0050h, 0030h
-	dw	0060h, 0030h
-	dw	0050h, 0030h
-	dw	0040h, 0030h
-	dw	0030h, 0030h
-	dw	0010h, 0040h
-	dw 	0000h, 0010h
-	dw	0050h, 0040h
-	dw	0060h, 0030h
-	dw	0050h, 0040h
-	dw	0040h, 0040h
-	dw	0030h, 0040h
-	dw	0010h, 0040h
-	dw	0000h, 0010h
-	dw	0010h, 0040h
-	dw	0005h, 0060h
-	dw	0010h, 0040h
-	dw	0000h, 0010h
-	dw	0010h, 0040h
-	dw	0005h, 0060h
-	dw	0010h, 0040h, 0FFFFh
+IntroStr	db "Hi, since you are new here", 10, 13
+			db "Let's get familiar with the game", '$'
+TutorStr	db "Here's the tutorials", 10, 10 ,13
+			db "How to play?", 10, 13
+			db "1. Customize your tank", 10, 13
+			db "2. Select map", 10, 13
+			db "3. Enjoy your game!", 10, 10, 10, 13 
+			db "Control your tank by the following keys", 10, 13
+			db "	       Player1					            Player2", 10, 13
+			db "  		  W  					            Arrow Up", 10, 13
+			db "		A   D					Arrow Left            Arrow Right", 10, 13
+			db "		  S  					           Arrow Down", 10, 13
+			db "	     Spece to fire					 Enter to fire", 10, 10, 10, 13
+			db "Press ESC to exit", '$'
+
 circle_count dw 100 dup(?)
 location dw 50 dup(?)
 Screen_Size dw 800, 600
@@ -97,12 +79,24 @@ file_handle dw ?
 file_name db "GameData.txt", 0
 file_default dw 0ff87h, 24h, 22h, 0DFh, 2bh, 2fh, 0f7h
 
-MenuStr1	db "Press space and enter simultaneously to start a new game", 10, 13, '$'
-MenuStr2	db "Press s for tutorial", 10, 13, '$'
-MenuStr3	db "Press esc to exit the game", 10, 13, '$'
+MenuStr1	db "Press SPACE and ENTER simultaneously to start a new game", 10, 13, '$'
+MenuStr2	db "Press S for tutorials", 10, 13, '$'
+MenuStr3	db "Press ESC to exit the game", 10, 13, '$'
+MenuStr4	db "Press A for more information", 10, 13, '$'
 TankStr1 	db "Please customize your tank.", 10, 13, '$'
-mapStr1 	db "Please select map", 10, 13, '$'
-mapStr2		db 'Once you have determined the map, player 1 please press the space.', 10, 13 , '$'
+TankStr2	db "		     Player 1					       Player 2", 10, 10, 10, 13
+			db "	  Use Key A & D to change part			     Use Left & Right to change part", 10, 13
+			db "	 Use Key W & S to change color			      Use Up & Down to change color", 10, 13
+			db "     Once you completed, please press SPACE		Once you completed, please press ENTER", 10, 13, '$'
+TankStr3	db "Status: Ready", 10, 13, '$'
+TankStr4	db "Status: Body", 10, 13, '$'
+TankStr5	db "Status: Tire", 10, 13, '$'
+TankStr6	db "Status: Gun", 10, 13, '$'
+mapStr1 	db "Please select map. Use key A & D to switch", 10, 13, '$'
+mapStr2		db 'Once you have determined the map, player 1 please press SPACE, player 2 please press ENTER', 10, 13 , '$'
+winStr1 	db "Player 1 won. Congratulation!!! Press ESC to exit", 10, 13, '$'
+winStr2 	db "Player 2 won. Congratulation!!! Press ESC to exit", 10, 13, '$'
+
 .stack 0FFFh
 
 .code
@@ -117,23 +111,24 @@ main proc
 	L1:
 	cmp		char_status[0], 1
 	je		exit_game
-
+	.if		char_status[2] == 1
+	call	Tutorial
+	jmp		MainIndex
+	.endif
+	.if		char_status[3] == 1
+	call	About
+	jmp		MainIndex
+	.endif
 	.if		char_status[5] == 1 && char_status[10] == 1
-		L2:
-			.if		char_status[5] == 0 && char_status[10] == 0
-				call	Tank_Customize
-				bt		ax, 0
-				jc		MainIndex
-				call	Choose_Map
-				bt		ax, 0
-				jc		MainIndex
-				call	SetTank_Position
-				call    GameMode_A
-				jmp		MainIndex
-			.endif
-			cmp		char_status[0], 1
-			je		exit_game
-		jmp		L2
+		call	Tank_Customize
+		bt		ax, 0
+		jc		MainIndex
+		call	Choose_Map
+		bt		ax, 0
+		jc		MainIndex
+		call	SetTank_Position
+		call    GameMode_A
+		jmp		MainIndex
 	.endif
 	jmp		MainIndexLoop
     
@@ -215,8 +210,6 @@ Start_Process proc
 Start_Process endp
 
 Choose_Map proc
-	SetCursor 0, 0
-	PrintString mapStr1
 	lea		di, map
 	push	es
 	mov		ax, @data
@@ -233,7 +226,9 @@ Choose_Map proc
 	mov		mapType, di
 	setMap 	mapType
 	L1:
-		SetCursor 20, 36
+		SetCursor 0, 0
+		PrintString mapStr1
+		SetCursor 5, 36
 		PrintString mapStr2
 		.if		char_status[0] == 1
 			set_Background bg_color
@@ -293,8 +288,10 @@ Choose_Map proc
 		setMap 	mapType
 		.endif
 		
-		cmp		char_status[5], 1
-		jne		L1
+		.if		char_status[5] == 1 && char_status[10] == 1
+		.else
+		jmp			L1
+		.endif
 	set_Background bg_color
 	mov		mapType, di
 	xor		ax, ax
@@ -343,13 +340,34 @@ SetTank_Position proc
 	ret
 SetTank_Position endp
 
+About proc
+	set_Background 00h
+	SetCursor 0, 0
+	PrintString WelcomeStr
+	SetCursor 0, 36
+	PrintString WelcomeStr2
+	L1:
+	cmp		char_status[0], 1
+	jne		L1
+	ret
+About endp
+
+Tutorial proc
+	set_Background 00h
+	SetCursor 0, 0
+	PrintString TutorStr
+	L1:
+	cmp		char_status[0], 1
+	jne		L1
+	ret
+Tutorial endp
+
 Tank_Customize proc
 	set_Background 00h
 	SetCursor 0, 0
 	PrintString TankStr1
-	;Clear_All_Object
-	;Create_Tank 1, 200, 300, 1, 24h, 22h, 0DFh
-	;Create_Tank 2, 600, 300, 1, 2bh, 2fh, 0f7h
+	SetCursor 0, 21
+	PrintString TankStr2
 	mov 	word ptr object_tank[2], 200
 	mov 	word ptr object_tank[4], 300
 	mov 	word ptr object_tank[6], 1
@@ -362,6 +380,52 @@ Tank_Customize proc
 	lea		si, offset object_tank
 	add		si, 22
 	xor		ax, ax
+
+	PrintP2:
+	mov		bx, si
+	sub		bx, offset object_tank
+	.if		bx == 22
+	SetCursor 69, 15
+	Delete_Line
+	PrintString TankStr4
+	.endif
+	.if		bx == 24
+	SetCursor 69, 15
+	Delete_Line
+	PrintString TankStr6
+	.endif	
+	.if		bx == 26
+	SetCursor 69, 15
+	Delete_Line
+	PrintString TankStr5
+	.endif
+
+	PrintP1:
+	bt		ax, 0
+	jc		Determine2
+	mov		bx, di
+	sub		bx, offset object_tank
+	.if		bx == 8
+	SetCursor 19, 15
+	Delete_Line
+	PrintString TankStr4
+	.endif
+	.if		bx == 10
+	SetCursor 19, 15
+	Delete_Line
+	PrintString TankStr6
+	.endif
+	.if		bx == 12
+	SetCursor 19, 15
+	Delete_Line
+	PrintString TankStr5
+	.endif
+	jmp		Determine2
+	check_loop:
+	.if		char_status[5] == 0 && char_status[10] == 0
+		jmp		Start
+	.endif
+	jmp		check_loop
 	Start:
 	.if		char_status[0] == 1
 		set_Background bg_color
@@ -369,10 +433,38 @@ Tank_Customize proc
 		ret	
 	.endif
 	.if		char_status[5] == 1
-		btc		ax, 0	
+		bt		cx, 2
+		jc		Determine2
+		bts		cx, 2	
+		btc		ax, 0
+		jc		Player1_space
+		SetCursor 19, 15
+		Delete_Line
+		PrintString TankStr3
+		jmp		exit_P1
+		Player1_space:
+		jmp		PrintP1
+		exit_P1:
+	.endif
+	.if		char_status[5] == 0
+		btr		cx, 2
 	.endif
 	.if		char_status[10] == 1
+		bt		cx, 5
+		jc		Start
+		bts		cx, 5
 		btc		ax, 1
+		jc		Player2_enter
+		SetCursor 69, 15
+		Delete_Line
+		PrintString TankStr3
+		jmp		exit_P2
+		Player2_enter:
+		jmp		PrintP2
+		exit_P2:
+	.endif
+	.if		char_status[10] == 0
+		btr		cx, 5
 	.endif
 	.if		al == 00000011b
 		jmp		set_Complete
@@ -391,22 +483,34 @@ Tank_Customize proc
 		jmp		Determine2
 	.endif
 	.if		char_status[3] == 1
+		bt		cx, 0
+		jc		Determine2
+		bts		cx, 0		
 		sub		di, 2
 		mov		bx, di
 		sub		bx, offset object_tank
 		.if		bx <= 7
 		add		di, 6
-		.endif				
-		jmp		Determine2
+		.endif
+		jmp		PrintP1				
+	.endif
+	.if		char_status[3] == 0
+		btr		cx, 0
 	.endif
 	.if		char_status[4] == 1
+		bt		cx, 1
+		jc		Determine2
+		bts		cx, 1	
 		add		di, 2
 		mov		bx, di
 		sub		bx, offset object_tank
 		.if		bx >= 14
 		sub		di, 6
 		.endif
-		jmp		Determine2
+		jmp		PrintP1
+	.endif
+	.if		char_status[4] == 0
+		btr		cx, 1
 	.endif
 
 
@@ -426,6 +530,9 @@ Tank_Customize proc
 		jmp		Start
 	.endif
 	.if		char_status[8] == 1
+		bt		cx, 3
+		jc		Start
+		bts		cx, 3	
 		sub		si, 2
 		mov		bx, si
 		sub		bx, offset object_tank
@@ -433,9 +540,15 @@ Tank_Customize proc
 		.if		bx <= 7
 		add		si, 6
 		.endif				
-		jmp		Start
+		jmp		PrintP2
+	.endif
+	.if		char_status[8] == 0
+		btr		cx, 3
 	.endif
 	.if		char_status[9] == 1
+		bt		cx, 4
+		jc		Start
+		bts		cx, 4	
 		add		si, 2
 		mov		bx, si
 		sub		bx, offset object_tank
@@ -443,7 +556,10 @@ Tank_Customize proc
 		.if		bx >= 14
 		sub		si, 6
 		.endif
-		jmp		Start
+		jmp		PrintP2
+	.endif
+	.if		char_status[9] == 0
+		btr		cx, 4
 	.endif
 	jmp			Start
 	
@@ -456,7 +572,7 @@ Tank_Customize proc
 	mov		cx, 3
 	cld
 	rep		movsw
-	add		di, 2
+	lea		di, file_in[8]
 	lea		si, object_tank[22] 
 	mov		cx, 3
 	rep		movsw
@@ -847,6 +963,7 @@ GetFile proc
     mov ah, 3Eh
     mov bx, file_handle
     int 21h
+	Introdution IntroStr, TutorStr
     jmp Open_FIle
     FindFIle:
     mov ah, 3fh
@@ -873,6 +990,10 @@ GameMode_A proc
 	mov			bp, sp
 	push 		sp
 	setMap 		mapType
+	exitLoop:
+		.if	char_status[5] != 0 || char_status[10] != 0
+			jmp			exitLoop
+		.endif
 	Print_Tank
 	mov 		ah, 2ch
 	int 		21h
@@ -933,8 +1054,10 @@ GameMode_A proc
 		mov			word ptr object_tank[20], 1
 		mov			word ptr object_tank[si], 0
 		Print_Tank
+		SetCursor	25, 36
+		PrintString winStr2
 		wait_player2:
-		cmp			char_status[10], 1
+		cmp			char_status[0], 1
 		jne			wait_player2
 	.endif
 	.if			si == 14
@@ -943,8 +1066,10 @@ GameMode_A proc
 		mov			word ptr object_tank[6], 1
 		mov			word ptr object_tank[si], 0
 		Print_Tank
+		SetCursor	25, 36
+		PrintString winStr1
 		wait_player1:
-		cmp			char_status[5], 1
+		cmp			char_status[0], 1
 		jne			wait_player1
 	.endif
 	
@@ -958,15 +1083,18 @@ GameMode_A endp
 init_Page proc
     set_Background 00h
 	Clear_All_Object
+	invoke	ShowTitle
 	Create_Tank 1, 50, 550, 2, word ptr file_in[2], word ptr file_in[4], word ptr file_in[6]
 	Create_Tank 2, 750, 550, 8, word ptr file_in[8], word ptr file_in[10], word ptr file_in[12]
 	Print_Tank
-	SetCursor 22, 28
+	SetCursor 22, 27
 	PrintString MenuStr1
-	SetCursor 40, 32
+	SetCursor 40, 30
 	PrintString MenuStr2
-	SetCursor 37, 36
+	SetCursor 37, 33
 	PrintString MenuStr3
+	SetCursor 36, 36
+	PrintString MenuStr4
     ret
 init_Page endp
 

@@ -24,6 +24,25 @@ PrintString macro Para
     popa
 endm
 
+Delete_Line macro 
+    Local       L1
+    pusha
+    mov         ah, 03h
+    mov         bh, 0
+    int         10h
+    push        dx
+    mov         cx, 20
+    L1:
+        mov         dl, ' '
+        mov         ah, 02h
+        int         21h
+    loop        L1
+    pop         dx
+    SetCursor   dl, dh       
+    popa
+endm
+
+
 PrintColorString macro Para, color
     Local       L1, Test, L2, L3
     pusha

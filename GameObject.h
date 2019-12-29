@@ -499,3 +499,21 @@ Discharge_Bullet macro
 	Create_Bullet ax, bx, di
 
 endm
+
+Introdution macro Para1, Para2
+	Local		L1
+	pusha
+	set_Background 00h
+	SetCursor	0, 0
+	lea			dx, Para1
+	mov 		ah, 09h
+	int			21h
+	SetCursor	0, 3
+	lea			dx, Para2
+	mov 		ah, 09h
+	int			21h
+	L1:
+		cmp			char_status[0], 1
+	jne			L1
+	popa
+endm

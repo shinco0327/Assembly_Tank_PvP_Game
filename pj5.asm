@@ -10,7 +10,7 @@ height   dw 29
 count  dw 0
 x dw 240 ;center
 y dw 320
-
+strcount db 0
 h1 dw 15
 h2 dw 21
 h3 dw 15
@@ -30,7 +30,10 @@ extstr1 db "I learn Assembly.", 10, 13, "And, it is a external file$"
 
 melody dw 0000, 9121, 8126, 7239, 6833, 6087, 5423, 4831, 4560, 4063, 3619, 3416, 3043, 2711, 2415, 2280, 2031, 1809, 1715, 1521, 1355, 1207
 musicOffset dw ?
-M_GotShoot dw 0ff87h, 0005h, 0100h, 0ffffh
+M_GotShoot 	dw 0ff87h, 0005h, 0050h
+			dw 0001h, 0050h
+			dw 0000h, 0001h
+			dw 0001h, 0050h, 0ffffh
 M_Welcome	dw 0ff87h, 0050h, 0010h
 			dw 0000h, 0002h
 			dw 0050h, 0010h
@@ -44,7 +47,48 @@ M_Welcome	dw 0ff87h, 0050h, 0010h
 			dw 0020h, 0010h
 			dw 0000h, 0002h
 			dw 0010h, 0080h, 0ffffh
+M_twoTiger dw 0ff87h, 0010h, 0040h 
+	dw	0020h, 0040h 
+	dw	0030h, 0040h 
+	dw	0010h, 0040h
+	dw	0000h, 0010h
+	dw	0010h, 0040h
+	dw	0020h, 0040h 
+	dw	0030h, 0040h
+	dw	0010h, 0040h
+	dw	0000h, 0010h
+	dw	0030h, 0040h 
+	dw	0040h, 0040h 
+	dw	0050h, 0040h
+	dw	0000h, 0010h
+	dw	0030h, 0040h 
+	dw	0040h, 0040h 
+	dw	0050h, 0040h
+	dw	0000h, 0010h
+	dw	0050h, 0030h
+	dw	0060h, 0030h
+	dw	0050h, 0030h
+	dw	0040h, 0030h
+	dw	0030h, 0030h
+	dw	0010h, 0040h
+	dw 	0000h, 0010h
+	dw	0050h, 0040h
+	dw	0060h, 0030h
+	dw	0050h, 0040h
+	dw	0040h, 0040h
+	dw	0030h, 0040h
+	dw	0010h, 0040h
+	dw	0000h, 0010h
+	dw	0010h, 0040h
+	dw	0005h, 0060h
+	dw	0010h, 0040h
+	dw	0000h, 0010h
+	dw	0010h, 0040h
+	dw	0005h, 0060h
+	dw	0010h, 0040h, 0FFFFh
+
 o_time dw ?
+
 
 .code
 
@@ -1788,6 +1832,219 @@ lgun:
 	ret
 print_left endp
 
+print_word macro x,y
+	mov cx,x
+	mov dx,y
+	mov strcount,0
+
+print_t1:
+	WrPixel cx,dx,6
+	inc strcount
+	inc cx
+	cmp strcount,140   ;寬
+	jb 	print_t1
+print_t1_next_row:
+	add dx,1	
+	cmp dx,100       ;高
+	ja  print_t2_initial
+    mov cx,x
+	mov strcount,0
+	jmp print_t1
+print_t2_initial:
+    mov cx,x
+    add cx,56
+    
+    mov strcount,0
+
+print_t2:  
+    WrPixel cx,dx,6
+	inc strcount
+	inc cx
+	cmp strcount,28   ;寬
+	jb 	print_t2
+print_t2_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_a1_initial
+    mov cx,x
+    add cx,56
+	mov strcount,0
+	jmp print_t2
+print_a1_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,150
+print_a1:
+    WrPixel cx,dx,6
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_a1
+print_a1_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_a2_initial
+    mov cx,x
+    add cx,150
+	mov strcount,0
+	jmp print_a1   
+print_a2_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,190
+print_a2:
+    WrPixel cx,dx,6
+	inc strcount
+	inc cx
+	cmp strcount,70   ;寬
+	jb 	print_a2
+print_a2_next_row:
+	add dx,1	
+	cmp dx,100       ;高
+	ja  print_a3_initial
+    mov cx,x
+    add cx,190
+	mov strcount,0
+	jmp print_a2
+print_a3_initial:   
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,260
+print_a3:
+    WrPixel cx,dx,6
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_a3
+print_a3_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_n1_initial
+    mov cx,x
+    add cx,260
+	mov strcount,0
+	jmp print_a3  
+print_n1_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,310
+print_n1:
+    WrPixel cx,dx,6
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_n1
+print_n1_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_n2_initial
+    mov cx,x
+    add cx,310
+	mov strcount,0
+	jmp print_n1       
+print_n2_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,350
+    add dx,30
+print_n2:
+    WrPixel cx,dx,6    
+    inc strcount
+    inc dx
+    cmp strcount,40
+    jb print_n2
+print_n2_next_row:
+    add cx,1
+    cmp cx,540
+    ja print_n3_initial
+    sub dx,39
+    mov strcount,0
+    jmp print_n2
+print_n3_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,410
+
+print_n3:
+    WrPixel cx,dx,6
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_n3
+print_n3_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_k1_initial
+    mov cx,x
+    add cx,410
+	mov strcount,0
+	jmp print_n3 
+print_k1_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,460
+print_k1:
+    WrPixel cx,dx,6
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_k1
+print_k1_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_k2_initial
+    mov cx,x
+    add cx,460
+	mov strcount,0
+	jmp print_k1 
+print_k2_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,560
+print_k2:
+    
+    WrPixel cx,dx,6
+    inc strcount
+    inc cx
+    cmp strcount,40
+    jb print_k2
+print_k2_next_row:
+    add dx,1
+    cmp dx,145
+    ja  print_k3_initial
+    sub cx,41
+    mov strcount,0
+    jmp print_k2
+print_k3_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,565
+    add dx,160
+print_k3:
+    WrPixel cx,dx,6
+    inc strcount
+    inc cx
+    cmp strcount,40
+    jb print_k3
+print_3_next_row:
+    sub dx,1
+    cmp dx,130
+    jb  print_k4_initial
+    sub cx,41
+    mov strcount,0
+    jmp print_k3 
+print_k4_initial:
+endm
+
 pj5_Init proc 
 	push		bp
 	mov			bp, sp
@@ -2064,6 +2321,10 @@ PlayLoopMusic proc
 	ret     
 PlayLoopMusic endp
 
+ShowTitle proc
+	print_word 100, 50
+	ret
+ShowTitle endp
 
 END
 
