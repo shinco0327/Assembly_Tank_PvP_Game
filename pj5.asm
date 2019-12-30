@@ -30,10 +30,18 @@ extstr1 db "I learn Assembly.", 10, 13, "And, it is a external file$"
 
 melody dw 0000, 9121, 8126, 7239, 6833, 6087, 5423, 4831, 4560, 4063, 3619, 3416, 3043, 2711, 2415, 2280, 2031, 1809, 1715, 1521, 1355, 1207
 musicOffset dw ?
-M_GotShoot 	dw 0ff87h, 0005h, 0050h
-			dw 0001h, 0050h
+M_GotShoot 	dw 0ff87h
+			dw 0100h, 0008h
+			dw 0070h, 0008h
+			dw 0060h, 0008h
+			dw 0001h, 0020h
+			dw 0003h, 0010h
 			dw 0000h, 0001h
-			dw 0001h, 0050h, 0ffffh
+			dw 0003h, 0010h
+			dw 0002h, 0010h
+			dw 0000h, 0001h
+			dw 0002h, 0010h
+			dw 0001h, 0020h, 0ffffh
 M_Welcome	dw 0ff87h, 0050h, 0010h
 			dw 0000h, 0002h
 			dw 0050h, 0010h
@@ -87,6 +95,27 @@ M_twoTiger dw 0ff87h, 0010h, 0040h
 	dw	0005h, 0060h
 	dw	0010h, 0040h, 0FFFFh
 
+M_Win 	dw 0ff87h
+		dw 0000h, 0200h
+	  	dw 0010h, 0010h
+		dw 0030h, 0010h
+		dw 0000h, 0001h
+		dw 0030h, 0010h
+		dw 0020h, 0001h
+		dw 0040h, 0010h
+		dw 0000h, 0001h
+		dw 0040h, 0010h
+		dw 0070h, 0010h
+		dw 0000h, 0001h
+		dw 0070h, 0010h
+		dw 0060h, 0010h
+		dw 0070h, 0010h
+		dw 0100h, 0010h, 0ffffh
+M_Stop	dw 0FF87h, 0FFFFh
+
+TitleColor dw 1 ,6h, 2fh, 28h, 09h, 2Ch, 0FFFFh
+
+
 o_time dw ?
 
 
@@ -106,8 +135,11 @@ o_time dw ?
 WrPixel macro xPara, yPara, color                ;This macro will write a pixel    
     Local store_pixel, Xmax, Xmin, checkY, Ymax, Ymin, printPixel
     pusha
+	push bp
     push sp
 	push ax
+	mov bl, color
+	push bx
     push xPara
     push yPara
     mov  bp, sp
@@ -150,10 +182,11 @@ WrPixel macro xPara, yPara, color                ;This macro will write a pixel
     call dword ptr [Tankvesa_info] ;call far address of window-handling function
     store_pixel:
     pop di
-	mov ax, SS:[BP+4]
-	mov	bl, color
+	mov ax, SS:[BP+6]
+	mov	bx, SS:[BP+4]
     mov byte ptr es:[di], bl 
-    mov sp, SS:[BP+6]
+    mov sp, SS:[BP+8]
+	pop bp
     popa
     endm
 
@@ -1832,13 +1865,20 @@ lgun:
 	ret
 print_left endp
 
-print_word macro x,y
+
+
+
+print_word macro x,y, color
+	push bp
+	mov bp, sp
+	mov cx, color
+	push cx
 	mov cx,x
 	mov dx,y
 	mov strcount,0
 
 print_t1:
-	WrPixel cx,dx,6
+	WrPixel cx,dx, SS:[BP-2]
 	inc strcount
 	inc cx
 	cmp strcount,140   ;寬
@@ -1857,7 +1897,7 @@ print_t2_initial:
     mov strcount,0
 
 print_t2:  
-    WrPixel cx,dx,6
+    WrPixel cx,dx, SS:[BP-2]
 	inc strcount
 	inc cx
 	cmp strcount,28   ;寬
@@ -1876,7 +1916,7 @@ print_a1_initial:
     mov strcount,0
     add cx,150
 print_a1:
-    WrPixel cx,dx,6
+    WrPixel cx,dx, SS:[BP-2]
 	inc strcount
 	inc cx
 	cmp strcount,40   ;寬
@@ -1895,7 +1935,7 @@ print_a2_initial:
     mov strcount,0
     add cx,190
 print_a2:
-    WrPixel cx,dx,6
+    WrPixel cx,dx, SS:[BP-2]
 	inc strcount
 	inc cx
 	cmp strcount,70   ;寬
@@ -1914,7 +1954,7 @@ print_a3_initial:
     mov strcount,0
     add cx,260
 print_a3:
-    WrPixel cx,dx,6
+    WrPixel cx,dx,SS:[BP-2]
 	inc strcount
 	inc cx
 	cmp strcount,40   ;寬
@@ -1933,7 +1973,7 @@ print_n1_initial:
     mov strcount,0
     add cx,310
 print_n1:
-    WrPixel cx,dx,6
+    WrPixel cx,dx,SS:[BP-2]
 	inc strcount
 	inc cx
 	cmp strcount,40   ;寬
@@ -1953,7 +1993,7 @@ print_n2_initial:
     add cx,350
     add dx,30
 print_n2:
-    WrPixel cx,dx,6    
+    WrPixel cx,dx,SS:[BP-2]    
     inc strcount
     inc dx
     cmp strcount,40
@@ -1972,7 +2012,7 @@ print_n3_initial:
     add cx,410
 
 print_n3:
-    WrPixel cx,dx,6
+    WrPixel cx,dx,SS:[BP-2]
 	inc strcount
 	inc cx
 	cmp strcount,40   ;寬
@@ -1991,7 +2031,7 @@ print_k1_initial:
     mov strcount,0
     add cx,460
 print_k1:
-    WrPixel cx,dx,6
+    WrPixel cx,dx,SS:[BP-2]
 	inc strcount
 	inc cx
 	cmp strcount,40   ;寬
@@ -2011,7 +2051,7 @@ print_k2_initial:
     add cx,560
 print_k2:
     
-    WrPixel cx,dx,6
+    WrPixel cx,dx,SS:[BP-2]
     inc strcount
     inc cx
     cmp strcount,40
@@ -2030,7 +2070,7 @@ print_k3_initial:
     add cx,565
     add dx,160
 print_k3:
-    WrPixel cx,dx,6
+    WrPixel cx,dx,SS:[BP-2]
     inc strcount
     inc cx
     cmp strcount,40
@@ -2043,6 +2083,8 @@ print_3_next_row:
     mov strcount,0
     jmp print_k3 
 print_k4_initial:
+	mov sp, bp
+	pop bp
 endm
 
 pj5_Init proc 
@@ -2150,7 +2192,16 @@ musicInit proc
     lea     di, M_Welcome
     mov     musicOffset, di
 	jmp		Exit_process
+	TT_Music:
+    lea     di, M_Win
+    mov     musicOffset, di
+	jmp		Exit_process
+	Stop_Playing:
+	lea		di, M_Stop
+	mov		musicOffset, di
+	jmp		Exit_process
 	Exit_process:
+	mov		o_time, 0
 	pop		si
     pop     di   
 	mov     sp, SS:[BP-2]
@@ -2158,6 +2209,8 @@ musicInit proc
 	ret     2
 	M_table	dw GotShoot_Music
 			dw Welcome_Music
+			dw TT_Music
+			dw Stop_Playing
 musicInit endp
 
 Playmusic proc
@@ -2187,7 +2240,7 @@ Playmusic proc
  	    out     61h, al ; Send new value.
         jmp     Exit_process
     .endif
-	mov		bx, [di]
+	mov		bx, word ptr[di]
 	cmp		bx, 0000h
 	jne     Not_mute
 	in      al, 61h ; Turn off note (get value from; port 61h).
@@ -2196,7 +2249,7 @@ Playmusic proc
 	mov     ah, 2ch
 	int     21h
 	mov     o_time, dx
-	jmp     Exit_process
+	jmp     Next_Melody
 	Not_mute:
 	cmp 	bx, 0010h
 	jge		middleF
@@ -2215,7 +2268,7 @@ Playmusic proc
 	output_melody:
 	shl		bx, 1
 	add		bx, offset melody
-	mov		ax, [bx]
+	mov		ax, word ptr[bx]
 	out		42h, al
 	mov		al, ah
 	out		42h, al
@@ -2230,7 +2283,7 @@ Playmusic proc
 
  	
 
- 	
+ 	Next_Melody:
 	add     di, 4
     mov     musicOffset, di
 
@@ -2252,6 +2305,9 @@ PlayLoopMusic proc
 	mov		di, musicOffset
 	.if		word ptr[di] == 0ff87h
 			add di, 2
+	.endif
+	.if		word ptr[di] == 0ffffh
+		jmp		Exit_process
 	.endif
 	START:
 	mov		bx, [di]
@@ -2311,10 +2367,12 @@ PlayLoopMusic proc
 	add di, 4
 	cmp word ptr[di], 0FFFFh
 	jne START
-
+	
 	in al, 61h ; Turn off note (get value from; port 61h).
  	and al, 11111100b ; Reset bits 1 and 0.
  	out 61h, al ; Send new value.
+	mov		musicOffset, di
+	Exit_process:
 	pop     di   
 	mov     sp, SS:[BP-2]
     pop     bp
@@ -2322,7 +2380,13 @@ PlayLoopMusic proc
 PlayLoopMusic endp
 
 ShowTitle proc
-	print_word 100, 50
+	mov di, word ptr TitleColor[0]
+	add di, di
+	print_word 100, 50, word ptr TitleColor[di]
+	inc word ptr TitleColor
+	.if word ptr TitleColor[di+2] == 0ffffh
+	mov word ptr TitleColor[0], 1
+	.endif
 	ret
 ShowTitle endp
 

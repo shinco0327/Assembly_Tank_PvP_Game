@@ -92,10 +92,11 @@ TankStr3	db "Status: Ready", 10, 13, '$'
 TankStr4	db "Status: Body", 10, 13, '$'
 TankStr5	db "Status: Tire", 10, 13, '$'
 TankStr6	db "Status: Gun", 10, 13, '$'
-mapStr1 	db "Please select map. Use key A & D to switch", 10, 13, '$'
+mapStr1 	db "Please select map. Use key A & D  or Arrow Left & Right to switch", 10, 13, '$'
 mapStr2		db 'Once you have determined the map, player 1 please press SPACE, player 2 please press ENTER', 10, 13 , '$'
 winStr1 	db "Player 1 won. Congratulation!!! Press ESC to exit", 10, 13, '$'
 winStr2 	db "Player 2 won. Congratulation!!! Press ESC to exit", 10, 13, '$'
+BtnStr1		db "Please release keys", '$'
 
 .stack 0FFFh
 
@@ -108,7 +109,6 @@ main proc
 	call	GetFile
 	call    init_Page
 	MainIndexLoop:
-	L1:
 	cmp		char_status[0], 1
 	je		exit_game
 	.if		char_status[2] == 1
@@ -235,7 +235,7 @@ Choose_Map proc
 			mov		ax, 1
 			ret	
 		.endif
-		.if		char_status[3] == 1
+		.if		char_status[3] == 1 || char_status[8] == 1
 			set_Background bg_color
 			mov		cx, di
 			sub		cx, offset map
@@ -265,7 +265,7 @@ Choose_Map proc
 			setMap 	mapType
 		.endif
 
-		.if		char_status[4] == 1
+		.if		char_status[4] == 1 || char_status[9] == 1
 			set_Background bg_color
 			lea		cx, map
 			add		cx, dx
@@ -365,6 +365,14 @@ Tutorial endp
 Tank_Customize proc
 	set_Background 00h
 	SetCursor 0, 0
+	PrintString BtnStr1
+	check_loop:
+	.if		char_status[5] == 1 || char_status[10] == 1
+		jmp		check_loop
+	.endif
+	
+	set_Background 00h
+	SetCursor 0, 0
 	PrintString TankStr1
 	SetCursor 0, 21
 	PrintString TankStr2
@@ -375,11 +383,12 @@ Tank_Customize proc
 	mov 	word ptr object_tank[18], 300
 	mov 	word ptr object_tank[20], 1
 	Print_Tank
+	xor		ax, ax
+	xor		cx, cx
 	lea		di, offset object_tank
 	add		di, 8
 	lea		si, offset object_tank
 	add		si, 22
-	xor		ax, ax
 
 	PrintP2:
 	mov		bx, si
@@ -421,11 +430,6 @@ Tank_Customize proc
 	PrintString TankStr5
 	.endif
 	jmp		Determine2
-	check_loop:
-	.if		char_status[5] == 0 && char_status[10] == 0
-		jmp		Start
-	.endif
-	jmp		check_loop
 	Start:
 	.if		char_status[0] == 1
 		set_Background bg_color
@@ -989,11 +993,17 @@ GameMode_A proc
 	push		bp
 	mov			bp, sp
 	push 		sp
-	setMap 		mapType
+	set_Background bg_color
+	SetCursor   0, 0
+	PrintString BtnStr1
 	exitLoop:
 		.if	char_status[5] != 0 || char_status[10] != 0
 			jmp			exitLoop
 		.endif
+	SetCursor 0, 0
+	Delete_Line
+	set_Background bg_color
+	setMap 		mapType
 	Print_Tank
 	mov 		ah, 2ch
 	int 		21h
@@ -1048,6 +1058,8 @@ GameMode_A proc
 	set_Background bg_color
 	pop			si
 	sub			si, offset object_tank
+	push		2
+	invoke 		musicInit
 	.if			si == 0
 		mov			word ptr object_tank[16], 400
 		mov			word ptr object_tank[18], 300
@@ -1057,6 +1069,7 @@ GameMode_A proc
 		SetCursor	25, 36
 		PrintString winStr2
 		wait_player2:
+		invoke		Playmusic
 		cmp			char_status[0], 1
 		jne			wait_player2
 	.endif
@@ -1069,11 +1082,13 @@ GameMode_A proc
 		SetCursor	25, 36
 		PrintString winStr1
 		wait_player1:
+		invoke		Playmusic
 		cmp			char_status[0], 1
 		jne			wait_player1
 	.endif
-	
-
+	push		3
+	invoke		musicInit
+	invoke		Playmusic
 	exit_game:
 	mov			sp, SS:[bp-2]
 	pop			bp
