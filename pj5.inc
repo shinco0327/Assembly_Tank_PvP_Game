@@ -11,4 +11,3 @@ TankProcess         PROTO
 musicInit           PROTO
 Playmusic           PROTO  
 PlayLoopMusic       PROTO
-ShowTitle           PROTO

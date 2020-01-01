@@ -1,9 +1,8 @@
 ;uProcessor Final Project
 ;File name: GameObject.h
-;Date: 2019/12/15
-;Author: Yu Shan Huang
-;StudentID: B10707049
-;National Taiwan University of Science Technology
+;Date: 2020/1/1
+;By B10707009 and B10707049
+;National Taiwan University of Science And Technology
 ;Department of Electrical Engineering
 
 ;Bullet Direction
@@ -54,12 +53,13 @@ Create_Bullet macro xPara, yPara, Direction                             ;Will dr
 	popa
 endm
 
+;player number, xPara, yPara, direction, body color, gun color, tire color
 Create_Tank macro userID, xPara, yPara, Direction, body_color, gun_color, tire_color
 Local		checkLoop, FindAvailable, NoStorage
 	pusha
-	lea			di, object_tank                                             ;load object storage
+	lea			di, object_tank                                         ;load object storage
 	mov			cx, LENGTHOF object_tank
-	checkLoop:								                            ;object Number, xPara, yPara
+	checkLoop:								                            
 		cmp			word ptr[di], 0                                     ;0 means the storage is unuse
 		je			FindAvailable
 		add			di, 14                                              ;check the next element
@@ -82,11 +82,11 @@ Local		checkLoop, FindAvailable, NoStorage
 	popa
 endm
 
-Clear_All_Object macro
+Clear_All_Object macro													;will clear object and object_tank 
 	pusha
 	push		es
 	mov			ax, ds
-	mov			es, ax
+	mov			es, ax													;es = @data
 	cld
 	lea			di, object
 	mov			cx, sizeof object
@@ -114,9 +114,9 @@ Print_Tank macro
 		push		word ptr [si+4]				;yPara
 		push		word ptr [si+6]				;Direction
 		push		word ptr [si+8]				;body
-		push		word ptr [si+10]				;gun
-		push		word ptr [si+12]				;tire
-		invoke		TankProcess
+		push		word ptr [si+10]			;gun
+		push		word ptr [si+12]			;tire
+		invoke		TankProcess					;TankProcess at pj5
 		pop			cx
 		pop			si
 		ObjectNotFound:
@@ -126,13 +126,14 @@ Print_Tank macro
 		jg			PrintLoop
 	popa
 endm
+
 ;The map format
 ;Example:
-;map01 dw 0, 0, 50, 50     is a square from (0,0) to (50,50)
-;	dw 100, 300, 150, 480
-;	dw 300, 150, 350, 350
-;	dw 550, 0, 580, 250
-;	dw 580, 400, 639, 480, 0ffffh
+;map dw 0, 0, 50, 50     is a square from (0,0) to (50,50)
+;	 dw 100, 300, 150, 480
+;	 dw 300, 150, 350, 350, 0ffffh
+;	 dw 550, 0, 580, 250
+; 	 dw 580, 400, 639, 480, 0ffffh, 0ff87h
 
 setMap macro mapOffset
     Local           L1, L2, L3
@@ -162,7 +163,7 @@ Bullet_move macro
 	pusha
 	mov			ax, word ptr[di+2]
 	mov			bx, word ptr[di+4]
-	cmp			word ptr[di+6], 1
+	cmp			word ptr[di+6], 1										;Direction determine how x and y change
 	je			Up
 	cmp			word ptr[di+6], 2
 	je			UpRight
@@ -207,7 +208,7 @@ Bullet_move macro
 	sub			bx, speed_of_Bullet
 	jmp bullet_set
 	bullet_set:
-	mov			word ptr[di+2], ax		;x in ax, y in bx
+	mov			word ptr[di+2], ax												;x in ax, y in bx
 	mov			word ptr[di+4], bx
 	popa
 endm
@@ -228,16 +229,16 @@ Update_Bullet macro
 		
 		Check_Collision:
 		mov			ax, word ptr Screen_Size[0]
-		sub			ax, 10
+		sub			ax, 13
 		cmp			word ptr[di+2], ax
 		jge			Make_oppositeY
-		cmp			word ptr[di+2], 10
+		cmp			word ptr[di+2], 13
 		jle			Make_oppositeY
 		mov			ax, word ptr Screen_Size[2]
-		sub			ax, 10
+		sub			ax, 13
 		cmp         word ptr[di+4], ax
 		jge			Make_oppositeX
-		cmp 		word ptr[di+4], 10
+		cmp 		word ptr[di+4], 13
 		jle			Make_oppositeX
 		
 
@@ -320,7 +321,8 @@ Update_Bullet macro
 		MeetBoundary:
 		Bullet_move
 		inc			word ptr[di+8]
-		cmp			word ptr [di+8], 1
+		mov			ax, bound_time
+		cmp			word ptr [di+8], ax
 		jle         Update
 		mov			word ptr[di], 0
 		mov			word ptr[di+2], 0
@@ -418,7 +420,8 @@ Print_Bullet macro
 	PrintLoop:								;object Number, xPara, yPara
 		cmp			word ptr[di], 1
 		jne			ObjectNotFound
-		cmp			word ptr[di+8], 1
+		mov			ax, bound_time
+		cmp			word ptr[di+8], ax
 		jg 			ObjectNotFound
 		draw_circle word ptr[di+2], word ptr[di+4], 5, 0Ah
 		ObjectNotFound:
@@ -513,7 +516,527 @@ Introdution macro Para1, Para2
 	mov 		ah, 09h
 	int			21h
 	L1:
-		cmp			char_status[0], 1
+		cmp			char_status[0], 1					;ESC to homepage
 	jne			L1
 	popa
+endm
+
+print_title macro x,y, color
+	push bp
+	mov bp, sp
+	mov cx, color
+	push cx
+	mov cx,x
+	mov dx,y
+	mov strcount,0
+
+	print_t1:
+	WrPixel cx,dx, SS:[BP-2]
+	inc strcount
+	inc cx
+	cmp strcount,140   ;寬
+	jb 	print_t1
+	print_t1_next_row:
+	add dx,1	
+	cmp dx,100       ;高
+	ja  print_t2_initial
+    mov cx,x
+	mov strcount,0
+	jmp print_t1
+	print_t2_initial:
+    mov cx,x
+    add cx,56
+    
+    mov strcount,0
+
+	print_t2:  
+    WrPixel cx,dx, SS:[BP-2]
+	inc strcount
+	inc cx
+	cmp strcount,28   ;寬
+	jb 	print_t2
+	print_t2_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_a1_initial
+    mov cx,x
+    add cx,56
+	mov strcount,0
+	jmp print_t2
+	print_a1_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,150
+	print_a1:
+    WrPixel cx,dx, SS:[BP-2]
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_a1
+	print_a1_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_a2_initial
+    mov cx,x
+    add cx,150
+	mov strcount,0
+	jmp print_a1   
+	print_a2_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,190
+	print_a2:
+    WrPixel cx,dx, SS:[BP-2]
+	inc strcount
+	inc cx
+	cmp strcount,70   ;寬
+	jb 	print_a2
+	print_a2_next_row:
+	add dx,1	
+	cmp dx,100       ;高
+	ja  print_a3_initial
+    mov cx,x
+    add cx,190
+	mov strcount,0
+	jmp print_a2
+	print_a3_initial:   
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,260
+	print_a3:
+    WrPixel cx,dx,SS:[BP-2]
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_a3
+	print_a3_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_n1_initial
+    mov cx,x
+    add cx,260
+	mov strcount,0
+	jmp print_a3  
+	print_n1_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,310
+	print_n1:
+    WrPixel cx,dx,SS:[BP-2]
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_n1
+	print_n1_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_n2_initial
+    mov cx,x
+    add cx,310
+	mov strcount,0
+	jmp print_n1       
+	print_n2_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,350
+    add dx,30
+	print_n2:
+    WrPixel cx,dx,SS:[BP-2]    
+    inc strcount
+    inc dx
+    cmp strcount,40
+    jb print_n2
+	print_n2_next_row:
+    add cx,1
+    cmp cx,540
+    ja print_n3_initial
+    sub dx,39
+    mov strcount,0
+    jmp print_n2
+	print_n3_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,410
+
+	print_n3:
+    WrPixel cx,dx,SS:[BP-2]
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_n3
+	print_n3_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_k1_initial
+    mov cx,x
+    add cx,410
+	mov strcount,0
+	jmp print_n3 
+	print_k1_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,460
+	print_k1:
+    WrPixel cx,dx,SS:[BP-2]
+	inc strcount
+	inc cx
+	cmp strcount,40   ;寬
+	jb 	print_k1
+	print_k1_next_row:
+	add dx,1	
+	cmp dx,210       ;高
+	ja  print_k2_initial
+    mov cx,x
+    add cx,460
+	mov strcount,0
+	jmp print_k1 
+	print_k2_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,560
+	print_k2:
+    
+    WrPixel cx,dx,SS:[BP-2]
+    inc strcount
+    inc cx
+    cmp strcount,40
+    jb print_k2
+	print_k2_next_row:
+    add dx,1
+    cmp dx,145
+    ja  print_k3_initial
+    sub cx,41
+    mov strcount,0
+    jmp print_k2
+	print_k3_initial:
+    mov cx,x
+    mov dx,y
+    mov strcount,0
+    add cx,565
+    add dx,160
+	print_k3:
+    WrPixel cx,dx,SS:[BP-2]
+    inc strcount
+    inc cx
+    cmp strcount,40
+    jb print_k3
+	print_3_next_row:
+    sub dx,1
+    cmp dx,130
+    jb  print_k4_initial
+    sub cx,41
+    mov strcount,0
+    jmp print_k3 
+	print_k4_initial:
+	mov sp, bp
+	pop bp
+endm
+
+WrPixel macro x, y, color
+	.if char_status[0] == 1 || char_status[2] == 1 || char_status[3] == 1
+		jmp print_k4_initial
+	.endif
+	.if char_status[5] == 1 && char_status[10] == 1 
+		jmp print_k4_initial
+	.endif
+	draw_pixel x, y, color
+endm
+
+Update_Tank macro UserID, Para
+	Local FindLoop, ObjectNotFound, ObjectFound, Act_Control, exit_macro, Forward_Process, Reverse_Process, Left_Process, Right_Process
+	Local Forward1, Forward2, Forward3, Forward4, Forward5, Forward6, Forward7, Forward8
+	Local Reverse1, Reverse2, Reverse3, Reverse4, Reverse5, Reverse6, Reverse7, Reverse8
+	Local CheckComplete, Under_Xmax, Above_Xmin, Under_Ymax, DischargeProcess
+	Local checkObstacle, L1, Recheck, InYRange, MeetObstacle
+	pusha
+	lea			si, object_tank
+	mov			cx, LENGTHOF object_tank
+	FindLoop:							
+		cmp			word ptr [si], UserID
+		je			ObjectFound
+		ObjectNotFound:
+		add			si, 14
+		sub			cx, 7
+		cmp			cx, 0
+		jle			exit_macro
+		jmp			FindLoop
+	ObjectFound:
+	Erase_Tank 	
+	mov			ax, word ptr[si+2]
+	mov			bx, word ptr[si+4]
+	mov			cx, Para
+	Act_Control:
+	cmp			cx, 1
+	je			Forward_Process
+	cmp			cx, 3
+	je			Reverse_Process
+	cmp			cx, 2
+	je			Right_Process
+	cmp			cx, 4
+	je			Left_Process
+	cmp			cx, 5
+	je			DischargeProcess
+	jmp			exit_macro
+	Right_Process:
+	add			word ptr[si+6], 1
+	cmp			word ptr[si+6], 9
+	jl			exit_macro
+	mov			word ptr[si+6], 1
+	jmp 		exit_macro
+	Left_Process:
+	sub			word ptr[si+6], 1
+	cmp			word ptr[si+6], 0
+	jg			exit_macro
+	mov			word ptr[si+6], 8
+	jmp 		exit_macro
+	Forward_Process:
+	cmp			word ptr[si+6], 1
+	je			Forward1
+	cmp			word ptr[si+6], 2
+	je			Forward2
+	cmp			word ptr[si+6], 3
+	je			Forward3
+	cmp			word ptr[si+6], 4
+	je			Forward4
+	cmp			word ptr[si+6], 5
+	je			Forward5
+	cmp			word ptr[si+6], 6
+	je			Forward6
+	cmp			word ptr[si+6], 7
+	je			Forward7
+	cmp			word ptr[si+6], 8
+	je			Forward8
+	Forward1:
+	sub			bx, speed_of_Tank
+	jmp			exit_macro
+	Forward2:
+	add			ax, speed_of_Tank
+	sub			bx, speed_of_Tank
+	jmp			exit_macro
+	Forward3:
+	add			ax, speed_of_Tank
+	jmp			exit_macro
+	Forward4:
+	add			ax, speed_of_Tank
+	add 		bx, speed_of_Tank 
+	jmp			exit_macro
+	Forward5:
+	add			bx, speed_of_Tank
+	jmp 		exit_macro
+	Forward6:
+	add			bx, speed_of_Tank
+	sub			ax, speed_of_Tank
+	jmp			exit_macro
+	Forward7:
+	sub			ax, speed_of_Tank
+	jmp			exit_macro
+	Forward8:
+	sub			ax, speed_of_Tank
+	sub			bx, speed_of_Tank
+	jmp			exit_macro
+	Reverse_Process:
+	cmp			word ptr[si+6], 1
+	je			Reverse1
+	cmp			word ptr[si+6], 2
+	je			Reverse2
+	cmp			word ptr[si+6], 3
+	je			Reverse3
+	cmp			word ptr[si+6], 4
+	je			Reverse4
+	cmp			word ptr[si+6], 5
+	je			Reverse5
+	cmp			word ptr[si+6], 6
+	je			Reverse6
+	cmp			word ptr[si+6], 7
+	je			Reverse7
+	cmp			word ptr[si+6], 8
+	je			Reverse8
+	Reverse1:
+	add			bx, speed_of_Tank
+	jmp			exit_macro
+	Reverse2:
+	sub			ax, speed_of_Tank
+	add			bx, speed_of_Tank
+	jmp			exit_macro
+	Reverse3:
+	sub			ax, speed_of_Tank
+	jmp			exit_macro
+	Reverse4:
+	sub			ax, speed_of_Tank
+	sub 		bx, speed_of_Tank 
+	jmp			exit_macro
+	Reverse5:
+	sub			bx, speed_of_Tank
+	jmp 		exit_macro
+	Reverse6:
+	sub			bx, speed_of_Tank
+	add			ax, speed_of_Tank
+	jmp			exit_macro
+	Reverse7:
+	add			ax, speed_of_Tank
+	jmp			exit_macro
+	Reverse8:
+	add			ax, speed_of_Tank
+	add			bx, speed_of_Tank
+	jmp			exit_macro
+	DischargeProcess:
+	;Create_Bullet
+	Discharge_Bullet
+	jmp			CheckComplete
+	exit_macro:
+	push		word ptr[si+2]
+	push		word ptr[si+4]		
+	mov			word ptr[si+2], ax
+	mov			word ptr[si+4], bx
+	mov			cx, Screen_Size[0]
+	sub			cx, 30
+	cmp			word ptr[si+2], cx
+	jl			Under_Xmax
+	mov			word ptr[si+2], cx
+	Under_Xmax:
+	mov			cx, 30
+	cmp 		word ptr[si+2], cx
+	jge			Above_Xmin
+	mov			word ptr[si+2], cx
+	Above_Xmin:
+	mov			cx, Screen_Size[2]
+	sub			cx, 30
+	cmp			word ptr[si+4], cx
+	jl			Under_Ymax
+	mov			word ptr[si+4], cx
+	Under_Ymax:
+	mov			cx, 30
+	cmp 		word ptr[si+4], cx
+	jg			checkObstacle
+	mov			word ptr[si+4], cx
+	
+	checkObstacle:
+	pop			bx
+	pop			ax
+	mov 		di, mapType
+		L1:
+		mov			cx, word ptr[di+4]		;xMax of obstacle
+		add			cx, 20
+		cmp			word ptr[si+2], cx		;if xPosition is bigger than xMax
+		jg			Recheck					;check next obstacle
+		mov			cx, word ptr[di]		;xMin of obstacle
+		sub			cx, 20
+		cmp			word ptr[si+2], cx		;if xPosition is bigger than xMin
+		jge			InYRange				;Mean it is in the range of obstacle in x asix 
+		Recheck:
+		add			di, 8			
+		cmp			word ptr[di], 0FFFFh
+		jne			L1
+		jmp			CheckComplete
+		InYRange:
+		mov			cx, word ptr[di+6]		;YMax of obstacle
+		add			cx, 20
+		cmp			word ptr[si+4], cx		;if yPosition is bigger than yMax
+		jg			Recheck					;check next obstacle
+		mov			cx, word ptr[di+2]		;yMin of obstacle
+		sub 		cx, 20
+		cmp			word ptr[si+4], cx		;if yPosition is bigger than yMin
+		jge			MeetObstacle			;bullet meet obstacle
+		jmp 		Recheck
+	MeetObstacle:
+	mov			word ptr[si+2], ax
+	mov			word ptr[si+4], bx		
+	CheckComplete:
+	Print_Tank
+	popa
+endm
+
+GameA_Keyboard macro
+	Local		exit_macro, checkP1_Down, checkP1_Down, checkP1_Left, checkP1_Right
+	Local		checkP2_Up, checkP2_Down, checkP2_Left, checkP2_Right, checkP2_Discharge
+	Local		P1_Left_Write, P1_Right_Write, P2_Left_Write, P2_Right_Write, P1_Discharge_Write, P2_Discharge_Write
+
+	cmp			byte ptr char_status[0], 1
+	je			exit_game
+	cmp			byte ptr char_status[1], 1
+	jne			checkP1_Down
+	;P1 up 
+	Update_Tank 1, 1
+	checkP1_Down:
+	cmp			byte ptr char_status[2], 1
+	jne			checkP1_Left
+	;P2 Down
+	Update_Tank 1,3
+	checkP1_Left:
+	cmp			byte ptr char_status[3], 1
+	jne			checkP1_Right
+	
+	Update_Tank 1, 4
+	checkP1_Right:
+	cmp			byte ptr char_status[4], 1
+	jne			checkP1_Discharge
+	
+	Update_Tank 1, 2
+	checkP1_Discharge:
+	cmp			byte ptr char_status[5], 1
+	jne			checkP2_Up
+	;P1 Discharge
+	mov 		ah, 2ch
+	int 		21h
+	sub			dx, word ptr game_timer[10]
+	cmp 		dx, 5
+	jge			P1_Discharge_Write
+	sub			cx, word ptr game_timer[8]
+	jg			P1_Discharge_Write
+	jmp			checkP2_Up
+	P1_Discharge_Write:
+	mov 		ah, 2ch
+	int 		21h
+	mov 		word ptr game_timer[8], cx
+	mov			word ptr game_timer[10], dx
+	Update_Tank 1, 5
+	checkP2_Up:
+	cmp			byte ptr char_status[6], 1
+	jne			checkP2_Down
+	;P2 Up
+	Update_Tank 2,1
+	checkP2_Down:
+	cmp			byte ptr char_status[7], 1
+	jne			checkP2_Left
+	;P2 Down
+	Update_Tank 2, 3
+	checkP2_Left:
+	cmp			byte ptr char_status[8], 1
+	jne			checkP2_Right
+	;P2 Left
+	
+	Update_Tank 2, 4
+	checkP2_Right:
+	cmp			byte ptr char_status[9], 1
+	jne			checkP2_Discharge
+	;P2 Right
+	
+	Update_Tank 2, 2
+	checkP2_Discharge:
+	cmp			byte ptr char_status[10], 1
+	jne			exit_macro
+	;P2 Discharge
+	mov 		ah, 2ch
+	int 		21h
+	sub			dx, word ptr game_timer[14]
+	cmp 		dx, 5
+	jge			P2_Discharge_Write
+	sub			cx, word ptr game_timer[12]
+	jg			P2_Discharge_Write
+	jmp			exit_macro
+	P2_Discharge_Write:
+	mov 		ah, 2ch
+	int 		21h
+	mov 		word ptr game_timer[12], cx
+	mov			word ptr game_timer[14], dx
+	Update_Tank 2, 5
+	exit_macro:
 endm

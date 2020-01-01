@@ -1,3 +1,9 @@
+;uProcessor Final Project
+;File name: pj5.asm
+;Date: 2020/1/1
+;By B10707009 and B10707049
+;National Taiwan University of Science And Technology
+;Department of Electrical Engineering
 .model small
 
 .stack 500h
@@ -111,27 +117,55 @@ M_Win 	dw 0ff87h
 		dw 0060h, 0010h
 		dw 0070h, 0010h
 		dw 0100h, 0010h, 0ffffh
+M_op	dw 0ff87h, 0030h, 0020h
+		dw 0000h, 0005h
+		dw 0030h, 0020h
+		dw 0040h, 0020h
+		dw 0050h, 0020h
+		dw 0000h, 0001h
+		dw 0050h, 0020h
+		dw 0040h, 0020h
+		dw 0030h, 0020h
+		dw 0020h, 0020h
+		dw 0010h, 0020h
+		dw 0000h, 0001h
+		dw 0010h, 0020h
+		dw 0020h, 0020h
+		dw 0030h, 0020h
+		dw 0000h, 0001h
+		dw 0030h, 0025h
+		dw 0020h, 0020h
+		dw 0000h, 0001h
+		dw 0020h, 0030h
+		dw 0000h, 0010h
+		dw 0030h, 0020h
+		dw 0000h, 0005h
+		dw 0030h, 0020h
+		dw 0040h, 0020h
+		dw 0050h, 0020h
+		dw 0000h, 0001h
+		dw 0050h, 0020h
+		dw 0040h, 0020h
+		dw 0030h, 0020h
+		dw 0020h, 0020h
+		dw 0010h, 0020h
+		dw 0000h, 0001h
+		dw 0010h, 0020h
+		dw 0020h, 0020h
+		dw 0030h, 0020h
+		dw 0020h, 0020h
+		dw 0010h, 0020h
+		dw 0000h, 0001h
+		dw 0010h, 0020h, 0ffffh
 M_Stop	dw 0FF87h, 0FFFFh
-
-TitleColor dw 1 ,6h, 2fh, 28h, 09h, 2Ch, 0FFFFh
+Play_state dw 0
+TitleColor dw 2 ,2Ah, 2fh, 28h, 09h, 2Ch, 5Eh, 0FFFFh
 
 
 o_time dw ?
 
 
 .code
-
-;SetMode macro mode    
-;        mov ah,00h
-;        mov al,mode
-;        int 10h
-;        endm
-;SetColor macro color  
-;         mov ah,0bh 
-;         mov bh,00h
-;         mov bl,color  
-;         int 10h
-;         endm
 WrPixel macro xPara, yPara, color                ;This macro will write a pixel    
     Local store_pixel, Xmax, Xmin, checkY, Ymax, Ymin, printPixel
     pusha
@@ -1868,224 +1902,7 @@ print_left endp
 
 
 
-print_word macro x,y, color
-	push bp
-	mov bp, sp
-	mov cx, color
-	push cx
-	mov cx,x
-	mov dx,y
-	mov strcount,0
 
-print_t1:
-	WrPixel cx,dx, SS:[BP-2]
-	inc strcount
-	inc cx
-	cmp strcount,140   ;寬
-	jb 	print_t1
-print_t1_next_row:
-	add dx,1	
-	cmp dx,100       ;高
-	ja  print_t2_initial
-    mov cx,x
-	mov strcount,0
-	jmp print_t1
-print_t2_initial:
-    mov cx,x
-    add cx,56
-    
-    mov strcount,0
-
-print_t2:  
-    WrPixel cx,dx, SS:[BP-2]
-	inc strcount
-	inc cx
-	cmp strcount,28   ;寬
-	jb 	print_t2
-print_t2_next_row:
-	add dx,1	
-	cmp dx,210       ;高
-	ja  print_a1_initial
-    mov cx,x
-    add cx,56
-	mov strcount,0
-	jmp print_t2
-print_a1_initial:
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,150
-print_a1:
-    WrPixel cx,dx, SS:[BP-2]
-	inc strcount
-	inc cx
-	cmp strcount,40   ;寬
-	jb 	print_a1
-print_a1_next_row:
-	add dx,1	
-	cmp dx,210       ;高
-	ja  print_a2_initial
-    mov cx,x
-    add cx,150
-	mov strcount,0
-	jmp print_a1   
-print_a2_initial:
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,190
-print_a2:
-    WrPixel cx,dx, SS:[BP-2]
-	inc strcount
-	inc cx
-	cmp strcount,70   ;寬
-	jb 	print_a2
-print_a2_next_row:
-	add dx,1	
-	cmp dx,100       ;高
-	ja  print_a3_initial
-    mov cx,x
-    add cx,190
-	mov strcount,0
-	jmp print_a2
-print_a3_initial:   
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,260
-print_a3:
-    WrPixel cx,dx,SS:[BP-2]
-	inc strcount
-	inc cx
-	cmp strcount,40   ;寬
-	jb 	print_a3
-print_a3_next_row:
-	add dx,1	
-	cmp dx,210       ;高
-	ja  print_n1_initial
-    mov cx,x
-    add cx,260
-	mov strcount,0
-	jmp print_a3  
-print_n1_initial:
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,310
-print_n1:
-    WrPixel cx,dx,SS:[BP-2]
-	inc strcount
-	inc cx
-	cmp strcount,40   ;寬
-	jb 	print_n1
-print_n1_next_row:
-	add dx,1	
-	cmp dx,210       ;高
-	ja  print_n2_initial
-    mov cx,x
-    add cx,310
-	mov strcount,0
-	jmp print_n1       
-print_n2_initial:
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,350
-    add dx,30
-print_n2:
-    WrPixel cx,dx,SS:[BP-2]    
-    inc strcount
-    inc dx
-    cmp strcount,40
-    jb print_n2
-print_n2_next_row:
-    add cx,1
-    cmp cx,540
-    ja print_n3_initial
-    sub dx,39
-    mov strcount,0
-    jmp print_n2
-print_n3_initial:
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,410
-
-print_n3:
-    WrPixel cx,dx,SS:[BP-2]
-	inc strcount
-	inc cx
-	cmp strcount,40   ;寬
-	jb 	print_n3
-print_n3_next_row:
-	add dx,1	
-	cmp dx,210       ;高
-	ja  print_k1_initial
-    mov cx,x
-    add cx,410
-	mov strcount,0
-	jmp print_n3 
-print_k1_initial:
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,460
-print_k1:
-    WrPixel cx,dx,SS:[BP-2]
-	inc strcount
-	inc cx
-	cmp strcount,40   ;寬
-	jb 	print_k1
-print_k1_next_row:
-	add dx,1	
-	cmp dx,210       ;高
-	ja  print_k2_initial
-    mov cx,x
-    add cx,460
-	mov strcount,0
-	jmp print_k1 
-print_k2_initial:
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,560
-print_k2:
-    
-    WrPixel cx,dx,SS:[BP-2]
-    inc strcount
-    inc cx
-    cmp strcount,40
-    jb print_k2
-print_k2_next_row:
-    add dx,1
-    cmp dx,145
-    ja  print_k3_initial
-    sub cx,41
-    mov strcount,0
-    jmp print_k2
-print_k3_initial:
-    mov cx,x
-    mov dx,y
-    mov strcount,0
-    add cx,565
-    add dx,160
-print_k3:
-    WrPixel cx,dx,SS:[BP-2]
-    inc strcount
-    inc cx
-    cmp strcount,40
-    jb print_k3
-print_3_next_row:
-    sub dx,1
-    cmp dx,130
-    jb  print_k4_initial
-    sub cx,41
-    mov strcount,0
-    jmp print_k3 
-print_k4_initial:
-	mov sp, bp
-	pop bp
-endm
 
 pj5_Init proc 
 	push		bp
@@ -2181,6 +1998,7 @@ musicInit proc
 	push 	sp
     push    di
 	push	si
+	mov		Play_state, 1
 	mov		si, SS:[BP+4]
 	shl		si, 1
 	jmp		M_table[si]
@@ -2200,6 +2018,10 @@ musicInit proc
 	lea		di, M_Stop
 	mov		musicOffset, di
 	jmp		Exit_process
+	OP_Music:
+	lea		di, M_op
+	mov		musicOffset, di
+	jmp		Exit_process
 	Exit_process:
 	mov		o_time, 0
 	pop		si
@@ -2211,6 +2033,7 @@ musicInit proc
 			dw Welcome_Music
 			dw TT_Music
 			dw Stop_Playing
+			dw OP_Music
 musicInit endp
 
 Playmusic proc
@@ -2218,6 +2041,13 @@ Playmusic proc
 	mov		bp, sp
 	push 	sp
     push    di
+	push	ax
+	push	bx
+	push	cx
+	push	dx
+	.if		Play_state != 1 
+		jmp		Exit_process
+	.endif
     mov     di, musicOffset
     .if		word ptr [di] != 0ff87h
 	mov     ah, 2ch
@@ -2238,6 +2068,7 @@ Playmusic proc
         in      al, 61h ; Turn off note (get value from; port 61h).
  	    and     al, 11111100b ; Reset bits 1 and 0.
  	    out     61h, al ; Send new value.
+		mov		Play_state, 0
         jmp     Exit_process
     .endif
 	mov		bx, word ptr[di]
@@ -2291,6 +2122,10 @@ Playmusic proc
 	
 
     Exit_process:
+	pop		dx
+	pop		cx
+	pop		bx
+	pop		ax
     pop     di   
 	mov     sp, SS:[BP-2]
     pop     bp
@@ -2379,16 +2214,6 @@ PlayLoopMusic proc
 	ret     
 PlayLoopMusic endp
 
-ShowTitle proc
-	mov di, word ptr TitleColor[0]
-	add di, di
-	print_word 100, 50, word ptr TitleColor[di]
-	inc word ptr TitleColor
-	.if word ptr TitleColor[di+2] == 0ffffh
-	mov word ptr TitleColor[0], 1
-	.endif
-	ret
-ShowTitle endp
 
 END
 

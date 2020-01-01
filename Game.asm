@@ -1,30 +1,30 @@
 ;uProcessor Final Project
 ;File name: Game.asm
-;Date: 2019/11/29
-;Author: Yu Shan Huang
-;StudentID: B10707049
-;National Taiwan University of Science Technology
+;Date: 2020/1/1
+;By B10707009 and B10707049
+;National Taiwan University of Science And Technology
 ;Department of Electrical Engineering
 include .\INCLUDE\Irvine16.inc
 include GameDraw.h
 include	GameObject.h
 include	GamePrint.h
 include pj5.inc
-;include	GMusic.inc
+
 
 .model small
 
 .data
 WelcomeStr 	db "TANK", 10, 10, 13
-			db "National Taiwan University of Science Technology", 10, 13
+			db "National Taiwan University of Science And Technology", 10, 13
 			db "Department of Electrical Engineering", 10, 10, 13
 			db "uProcessor Lab Fall, 2019", 10, 13
 			db "By", 10, 13
 			db "B10707009 HISU MIN YANG said, I got a big dick!", 10, 13
-			db "B10707049 YU SHAN HUANG said, I learn Assembly!", 10, 10, 13
+			db "B10707049 YU SHAN HUANG said, Knock Knock...", 10, 10, 13
 			db "Recommend running the program on DOSBOX.", 10, 13
 			db "Download DOSBOX at https://www.dosbox.com/",10, 10, 13
-			db "Explore this program on https://github.com/shinco0327/uProcessor_Game", 10, 13, '$'
+			db "Explore this program on https://github.com/shinco0327/uProcessor_Game", 10, 13
+			db "Enjoy your game.						   Jan 1st, 2020", '$'
 WelcomeStr2 db "Press esc to exit", '$'
 NotSupportStr db "Your computer does not support VESA SuperVGA. Press any key to exit.", 10, 13, '$'
 IntroStr	db "Hi, since you are new here", 10, 13
@@ -32,8 +32,9 @@ IntroStr	db "Hi, since you are new here", 10, 13
 TutorStr	db "Here's the tutorials", 10, 10 ,13
 			db "How to play?", 10, 13
 			db "1. Customize your tank", 10, 13
-			db "2. Select map", 10, 13
-			db "3. Enjoy your game!", 10, 10, 10, 13 
+			db "2. Select difficulty level", 10, 13
+			db "3. Select map", 10, 13
+			db "4. Enjoy your game!", 10, 10, 10, 13 
 			db "Control your tank by the following keys", 10, 13
 			db "	       Player1					            Player2", 10, 13
 			db "  		  W  					            Arrow Up", 10, 13
@@ -43,11 +44,10 @@ TutorStr	db "Here's the tutorials", 10, 10 ,13
 			db "Press ESC to exit", '$'
 
 circle_count dw 100 dup(?)
-location dw 50 dup(?)
 Screen_Size dw 800, 600
-object dw 100 dup(?)
-object_tank dw 14 dup(0)
-game_timer dw 0, 0, 0, 0, 0, 0
+object dw 100 dup(?)			;Used to store bullet
+object_tank dw 14 dup(0)		;Used to store tank
+game_timer dw 8 dup(?)
 speed_of_Bullet dw 8
 speed_of_Tank dw 25	
 mapType dw ?
@@ -55,13 +55,16 @@ map dw 350, 250, 450, 350, 150, 0, 200, 350, 600, 400, 650, 600, 0ffffh
 	dw 0, 0, 50, 50, 100, 300, 150, 480, 300, 150, 350, 350, 550, 0, 580, 250, 250, 0, 300, 150, 580, 400, 639, 480, 0ffffh
 	dw 375, 200, 425, 400, 250, 200, 375, 250, 250, 350, 375, 400, 425, 200, 550, 250, 425, 350, 550, 400, 175, 75, 225, 125, 375, 0, 425, 50, 575, 75, 625, 125, 175, 475, 225, 525, 375, 550, 425, 600, 575, 475, 625, 525, 0ffffh
 	dw 100, 175, 125, 425, 500, 175, 525, 425, 125, 175, 300, 200, 125, 290, 300, 310, 125, 400, 300, 425, 525, 175, 700, 200, 525, 290, 700, 310, 525, 400, 700, 425, 0ffffh, 0FF87h 
+;Tanks' initial position in every map x, y, direction
 TankInit_set dw 50, 40, 5, 750, 560, 1, 150, 40, 5, 700, 40, 5, 300, 300, 7, 500, 300, 3, 250, 250, 3, 650, 350, 3
+;Char_table represents to following keys
 ;esc w s a d q up down left right  enter
 char_table db 01h, 11h, 1fh, 1eh, 20h, 39h, 48h, 50h, 4bh, 4dh, 1ch
 char_status db 11 dup(0) 
 
-graph_reg dw 0
+
 bg_color db 72h
+;Bound Handle
 ;   8   1   2
 ;    \  |  /
 ;     \ | /
@@ -73,10 +76,12 @@ bg_color db 72h
 ;    6  5
 bound_handler db 5, 4, 7, 2, 1, 8, 3, 6		;meet x asix
 			  db 5, 8, 7, 6, 1, 4, 3, 2		;meet y asix
-vesa_info db 256 dup(?)
-file_in dw 10 dup(?)
-file_handle dw ?
+bound_time	  dw 1
+vesa_info db 256 dup(?)						;Used to store VESA SVGA info
+file_in dw 10 dup(?)					
+file_handle dw ?							;For file io
 file_name db "GameData.txt", 0
+;If the GameData.txt is not found, crate the file with following parameters"
 file_default dw 0ff87h, 24h, 22h, 0DFh, 2bh, 2fh, 0f7h
 
 MenuStr1	db "Press SPACE and ENTER simultaneously to start a new game", 10, 13, '$'
@@ -92,6 +97,13 @@ TankStr3	db "Status: Ready", 10, 13, '$'
 TankStr4	db "Status: Body", 10, 13, '$'
 TankStr5	db "Status: Tire", 10, 13, '$'
 TankStr6	db "Status: Gun", 10, 13, '$'
+Diff_Str1 	db "Please select difficulty level. Use key A & D  or Arrow Left & Right to switch", '$'
+Diff_Str2 	db "Level: ", '$'
+Diff_Str3	db "Easy", '$'
+Diff_Str4	db "Normal", '$'
+Diff_Str5	db "Hard", '$'
+Diff_Str6	db "Expert", '$'
+Diff_Str7 	db  'Once you have determined, player 1 please press SPACE, player 2 please press ENTER', 10, 13 , '$'
 mapStr1 	db "Please select map. Use key A & D  or Arrow Left & Right to switch", 10, 13, '$'
 mapStr2		db 'Once you have determined the map, player 1 please press SPACE, player 2 please press ENTER', 10, 13 , '$'
 winStr1 	db "Player 1 won. Congratulation!!! Press ESC to exit", 10, 13, '$'
@@ -104,104 +116,114 @@ BtnStr1		db "Please release keys", '$'
 main proc
 	push		ax
 	push		ax
-	call		Start_Process
+	call		Start_Process				
 	MainIndex:
-	call	GetFile
+	.if		char_status[0] == 1				;Check if ESC got pressed
+		set_Background 00h
+		SetCursor 	0, 0
+		PrintString	BtnStr1
+		ESC_Pressed:						
+		cmp			char_status[0], 1
+		je			ESC_Pressed
+	.endif						
 	call    init_Page
-	MainIndexLoop:
-	cmp		char_status[0], 1
+	MainIndexLoop:	
+	call    ShowTitle
+	cmp		char_status[0], 1				;Esc to exit
 	je		exit_game
-	.if		char_status[2] == 1
-	call	Tutorial
-	jmp		MainIndex
+	.if		char_status[2] == 1				;S to show tutorials
+		call	Tutorial
+		jmp		MainIndex
 	.endif
-	.if		char_status[3] == 1
-	call	About
-	jmp		MainIndex
+	.if		char_status[3] == 1				;A to show about
+		call	About
+		jmp		MainIndex
 	.endif
-	.if		char_status[5] == 1 && char_status[10] == 1
+	.if		char_status[5] == 1 && char_status[10] == 1			;Press both space and enter to start a new game
 		call	Tank_Customize
-		bt		ax, 0
+		bt		ax, 0											;if the rightmost bit is 0, go back to home page
+		jc		MainIndex
+		call	Set_Difficulty
+		bt		ax, 0											;if the rightmost bit is 0, go back to home page
 		jc		MainIndex
 		call	Choose_Map
-		bt		ax, 0
+		bt		ax, 0											;if the rightmost bit is 0, go back to home page
 		jc		MainIndex
-		call	SetTank_Position
+		call	SetTank_Position								
 		call    GameMode_A
 		jmp		MainIndex
 	.endif
 	jmp		MainIndexLoop
     
 	exit_game:
-    cmp		byte ptr char_status[0], 1
-	jne		exit_game
     mov     ax, 0003h                       ;Back to text mode
     int     10h
 	pop 	dx								;Restore int 9h
     pop 	ax								
     mov 	ds, ax
     mov 	ah, 25h
-    mov 	al, 09h
+    mov 	al, 09h							;Interrupt vector 9h
     int 	21h
     mov     ax, 4c00h                       ;Exit to DOS
     int     21h
 main endp
 
-Start_Process proc
+;Following procedure will be done in Start_Process
+;Replace int 9h
+;Get info of SVGA 800*600 256 colors mode 
+;Set graph mode
+Start_Process proc					
 	push		bp
 	mov			bp, sp
 	push 		sp
-	mov			ax, 0003h
+	mov			ax, 0003h					;Text mode
 	int			10h
-	mov			ax, @data
+	mov			ax, @data					
 	mov			ds, ax
-	lea			dx, WelcomeStr
-	mov 		ah, 09h
-	int 		21h
+	SetCursor 	0, 0
+	PrintString WelcomeStr
 	;Handle Keyboard interrupt 9h
 	mov 		ah, 35h						;Get int 9h vector
     mov 		al, 09h
     int 		21h
-	mov			word ptr SS:[BP+6], es
+	mov			word ptr SS:[BP+6], es		;ES:BX current 9h handler
 	mov			word ptr SS:[BP+4], bx
-	mov			ax, @code
-	mov			ds, ax
-	mov			ah, 25h
-	mov			al, 09h
-	lea			dx, MyInterrupt
+	mov			ax, @code					
+	mov			ds, ax						;CS to DS
+	mov			ah, 25h						;Set int 9h handler
+	mov			al, 09h						
+	lea			dx, MyInterrupt				;DS:DX
 	int			21h
-    mov         ax, @data
+    mov         ax, @data					;Restore DS 
     mov         ds, ax
-	mov 		es, ax
-    mov 		ax, 4f01h
+	mov 		es, ax						;mov ds to es
+    mov 		ax, 4f01h					;Get VESA SVGA mode 103h informations
     mov 		cx, 103h
-    lea 		di, vesa_info
+    lea 		di, vesa_info				
     int 		10h
-	push 		dword ptr vesa_info[0Ch]
+	push 		dword ptr vesa_info[0Ch]	;+0CH far address of window-handling function
 	invoke 		pj5_Init
 	push		1
 	invoke 		musicInit
 	invoke		PlayLoopMusic
-	mov 		ax, 0A000h
+	mov 		ax, 0A000h			
 	mov 		es, ax
     mov     	ax, 4f02h
 	mov 		bx, 103h					;800*600 256 colors
     int     	10h
-	.if			al != 4fh || ah == 01h
-		mov     ax, 0003h                       ;Back to text mode
+	.if			al != 4fh || ah == 01h		;if set failed
+		mov     ax, 0003h                  	;Back to text mode
     	int     10h
-		mov		ah, 09h
-		lea		dx, NotSupportStr
-		int		21h
-		mov 	dx,	word ptr SS:[BP+4]			;Restore int 9h
+		PrintString NotSupportStr			
+		mov 	dx,	word ptr SS:[BP+4]		;Restore int 9h
     	mov 	ax, word ptr SS:[BP+6]								
     	mov 	ds, ax
     	mov 	ah, 25h
     	mov 	al, 09h
-    	int 	21h
-		mov		ah, 10h
+    	int 	21h	
+		mov		ah, 10h						;Wait Keystroke
 		int 	16h
-    	mov     ax, 4c00h                       ;Exit to DOS
+    	mov     ax, 4c00h                  	;Exit to DOS
     	int     21h
 	.endif
 	mov			sp, SS:[BP-2]
@@ -209,7 +231,329 @@ Start_Process proc
 	ret
 Start_Process endp
 
-Choose_Map proc
+Tank_Customize proc
+	set_Background 00h
+	SetCursor 0, 0
+	PrintString BtnStr1
+	check_loop:							;Both space and enter need to be released
+	.if		char_status[5] == 1 || char_status[10] == 1
+		jmp		check_loop
+	.endif
+	
+	set_Background 00h
+	SetCursor 0, 0
+	PrintString TankStr1				
+	SetCursor 0, 21
+	PrintString TankStr2
+	mov 	word ptr object_tank[2], 200
+	mov 	word ptr object_tank[4], 300
+	mov 	word ptr object_tank[6], 1
+	mov 	word ptr object_tank[16], 600
+	mov 	word ptr object_tank[18], 300
+	mov 	word ptr object_tank[20], 1
+	Print_Tank
+	xor		ax, ax
+	xor		cx, cx
+	lea		di, offset object_tank		;di will be in charge of player 1
+	add		di, 8
+	lea		si, offset object_tank		;si will be in charge of player 2
+	add		si, 22
+
+	PrintP2:							;print player 2's status
+	mov		bx, si
+	sub		bx, offset object_tank
+	.if		bx == 22					;Body
+	SetCursor 69, 15
+	Delete_Line
+	PrintString TankStr4
+	.endif
+	.if		bx == 24					;Gun
+	SetCursor 69, 15
+	Delete_Line
+	PrintString TankStr6
+	.endif	
+	.if		bx == 26					;Tire
+	SetCursor 69, 15
+	Delete_Line
+	PrintString TankStr5
+	.endif
+
+	PrintP1:							;print player 2's status
+	bt		ax, 0						;0 bit of ax is 1 represents player 1 is ready
+	jc		Determine2
+	mov		bx, di
+	sub		bx, offset object_tank
+	.if		bx == 8						;Body
+	SetCursor 19, 15
+	Delete_Line
+	PrintString TankStr4
+	.endif
+	.if		bx == 10					;Gun
+	SetCursor 19, 15
+	Delete_Line
+	PrintString TankStr6
+	.endif
+	.if		bx == 12					;Tire
+	SetCursor 19, 15
+	Delete_Line
+	PrintString TankStr5
+	.endif
+	jmp		Determine2
+	Start:
+	.if		char_status[0] == 1			;Exit to home page
+		set_Background bg_color
+		mov		ax, 1
+		ret	
+	.endif
+	.if		al == 00000011b				;Both players are ready
+		jmp		set_Complete
+	.endif
+	.if		char_status[5] == 1			;space got pressed
+		bt		cx, 2					;prevent program running to fast, that cause the status change multiple times in one keystroke
+		jc		Determine2
+		bts		cx, 2				
+		btc		ax, 0					;complement 0 bit of ax
+		jc		Player1_space
+		SetCursor 19, 15
+		Delete_Line
+		PrintString TankStr3			;String ready
+		jmp		exit_P1
+		Player1_space:
+		jmp		PrintP1
+		exit_P1:
+	.endif
+	.if		char_status[5] == 0			;space release 
+		btr		cx, 2
+	.endif
+	bt		ax, 0						;player 1 ready
+	jc		Determine2
+	.if		char_status[1] == 1			;w
+		inc		byte ptr[di]
+		Print_Tank
+		jmp		Determine2
+	.endif
+	.if		char_status[2] == 1			;s
+		dec		byte ptr[di]
+		Print_Tank
+		jmp		Determine2
+	.endif
+	.if		char_status[3] == 1			;a
+		bt		cx, 0					;press and release detection 
+		jc		Determine2
+		bts		cx, 0		
+		sub		di, 2
+		mov		bx, di
+		sub		bx, offset object_tank
+		.if		bx <= 7
+		add		di, 6
+		.endif
+		jmp		PrintP1				
+	.endif
+	.if		char_status[3] == 0			;a released
+		btr		cx, 0
+	.endif
+	.if		char_status[4] == 1			;d
+		bt		cx, 1
+		jc		Determine2
+		bts		cx, 1	
+		add		di, 2
+		mov		bx, di
+		sub		bx, offset object_tank
+		.if		bx >= 14
+		sub		di, 6
+		.endif
+		jmp		PrintP1
+	.endif
+	.if		char_status[4] == 0			;d released
+		btr		cx, 1
+	.endif
+
+
+	
+	Determine2:
+	.if		char_status[10] == 1		;enter
+		bt		cx, 5
+		jc		Start
+		bts		cx, 5
+		btc		ax, 1
+		jc		Player2_enter
+		SetCursor 69, 15
+		Delete_Line
+		PrintString TankStr3			;ready str
+		jmp		exit_P2
+		Player2_enter:
+		jmp		PrintP2
+		exit_P2:
+	.endif
+	.if		char_status[10] == 0		;enter released
+		btr		cx, 5
+	.endif
+	bt		ax, 1
+	jc		Start
+
+	.if		char_status[6] == 1			;up
+		inc		byte ptr[si]
+		Print_Tank
+		jmp		Start
+	.endif
+	.if		char_status[7] == 1			;down
+		dec		byte ptr[si]
+		Print_Tank
+		jmp		Start
+	.endif
+	.if		char_status[8] == 1			;left
+		bt		cx, 3
+		jc		Start
+		bts		cx, 3	
+		sub		si, 2
+		mov		bx, si
+		sub		bx, offset object_tank
+		sub		bx, 14
+		.if		bx <= 7
+		add		si, 6
+		.endif				
+		jmp		PrintP2
+	.endif
+	.if		char_status[8] == 0			;left released
+		btr		cx, 3
+	.endif
+	.if		char_status[9] == 1			;right
+		bt		cx, 4
+		jc		Start
+		bts		cx, 4	
+		add		si, 2
+		mov		bx, si
+		sub		bx, offset object_tank
+		sub		bx, 14
+		.if		bx >= 14
+		sub		si, 6
+		.endif
+		jmp		PrintP2
+	.endif
+	.if		char_status[9] == 0			;right released
+		btr		cx, 4
+	.endif
+	jmp			Start
+	
+	set_Complete:						
+	push 	es							;store color into file 
+	mov		ax, @data
+	mov		es, ax
+	lea		di, file_in[2]
+	lea		si, object_tank[8]
+	mov		cx, 3
+	cld
+	rep		movsw
+	lea		di, file_in[8]
+	lea		si, object_tank[22] 
+	mov		cx, 3
+	rep		movsw
+	pop		es
+	mov 	ah, 3Dh					;Open file
+    mov 	al, 2					;W/R
+    lea 	dx, file_name
+    int 	21h
+    mov 	bx, file_handle
+    mov 	cx, 14					;14 Bytes to write
+    lea 	dx, file_in
+    mov 	ah, 40h
+    int 	21h
+    mov 	ah, 3Eh					;close file
+    mov 	bx, file_handle
+    int 	21h
+	set_Background bg_color
+	xor		ax, ax
+	ret
+Tank_Customize endp
+
+Set_Difficulty proc
+	set_Background 00h
+	SetCursor 0,0 
+	PrintString	BtnStr1
+	checkRelease:
+	.if char_status[5] == 1 || char_status[10] == 1
+		jmp	checkRelease
+	.endif
+	set_Background 00h
+	SetCursor 0, 0
+	PrintString Diff_Str1
+	SetCursor 45, 18
+	PrintString Diff_Str2
+	SetCursor 9, 36
+	PrintString Diff_Str7
+	Select_Loop:
+	SetCursor 52, 18
+	Delete_Line
+	.if		bound_time == 0
+		PrintString Diff_Str3
+	.endif
+	.if		bound_time == 1
+		PrintString Diff_Str4
+	.endif
+	.if		bound_time == 3
+		PrintString Diff_Str5
+	.endif
+	.if		bound_time == 5
+		PrintString Diff_Str6
+	.endif
+	check_input:
+	.if		char_status[4] == 0 && char_status[9] == 0		;press and release detection
+		btr		cx, 0										;released
+	.endif
+	.if		char_status[3] == 0 && char_status[8] == 0
+		btr		cx, 1
+	.endif
+	bt		cx, 0
+	jc		check_input
+	.if		char_status[4] == 1 || char_status[9] == 1		;D or right
+		.if		bound_time == 0								
+			mov bound_time, 1
+		.elseif bound_time == 5
+			mov bound_time, 0
+		.else
+			add bound_time, 2
+		.endif
+		bts		cx, 0										;0 bit of cx is 1 after pressed
+		jmp		Select_Loop
+	.endif
+	bt		cx, 1
+	jc		check_input
+	.if		char_status[3] == 1 || char_status[8] == 1		;A or left
+		.if		bound_time == 0
+			mov bound_time, 5
+		.elseif bound_time == 1
+			mov bound_time, 0
+		.else
+			sub bound_time, 2
+		.endif
+		bts		cx, 1
+		jmp		Select_Loop
+	.endif
+	.if		char_status[0] == 1								;Back to home page
+		mov		ax, 1
+		ret
+	.endif
+	.if		char_status[5] == 1 && char_status[10] == 1		;selected
+		jmp 	Exit_process
+	.endif
+	jmp		check_input
+
+	Exit_process:
+	.if		char_status[5] == 1 || char_status[10] == 1		
+		set_Background 00h
+		SetCursor 0, 0
+		PrintString BtnStr1
+		wait_release:										;Wait for release
+		.if	char_status[5] == 1 || char_status[10]==1
+			jmp		wait_release
+		.endif
+	.endif
+	set_Background bg_color
+	xor		ax, ax
+	ret
+Set_Difficulty endp
+
+Choose_Map proc							
 	lea		di, map
 	push	es
 	mov		ax, @data
@@ -217,10 +561,10 @@ Choose_Map proc
 	cld
 	mov		cx, 0FFFFh
 	mov		ax, 0FF87h
-	repne	scasw
-	sub		di, 2
-	mov		dx, di
-	sub		dx,	offset map
+	repne	scasw											;Find the end of map array 
+	sub		di, 2							
+	mov		dx, di											;get offset
+	sub		dx,	offset map									;dx = how many bytes in map
 	pop		es
 	lea		di, map
 	mov		mapType, di
@@ -230,48 +574,48 @@ Choose_Map proc
 		PrintString mapStr1
 		SetCursor 5, 36
 		PrintString mapStr2
-		.if		char_status[0] == 1
+		.if		char_status[0] == 1							;back to home page
 			set_Background bg_color
 			mov		ax, 1
 			ret	
 		.endif
-		.if		char_status[3] == 1 || char_status[8] == 1
+		.if		char_status[3] == 1 || char_status[8] == 1	;A or left
 			set_Background bg_color
-			mov		cx, di
+			mov		cx, di									;find current offset in map array
 			sub		cx, offset map
-			.if		cx <= 0
+			.if		cx <= 0									;Reach 0, Back to max
 				lea		di, map
 				add		di, dx
 			.endif
 			sub		di, 4
 			mov		cx, di
-			sub		cx, offset map
+			sub		cx, offset map							;byte to word
 			shr		cx, 1
 			.if		cx > 0
-				std
+				std											;Direction flag = 1, find from high to low
 				push	es
 				mov		ax, @data
 				mov		es, ax
-				mov		ax, 0ffffh
+				mov		ax, 0ffffh							;Find the end of each map
 				repne	scasw
 				pop		es
 				cmp		cx, 0
 				jz		exit_Left
-				add		di, 4
+				add		di, 4								;Will equal to start of each map
 			.endif
 			exit_Left:
-			cld
-			mov		mapType, di
+			cld												;clear direction flag
+			mov		mapType, di								;draw map
 			setMap 	mapType
 		.endif
 
-		.if		char_status[4] == 1 || char_status[9] == 1
+		.if		char_status[4] == 1 || char_status[9] == 1	;D and right
 			set_Background bg_color
 			lea		cx, map
 			add		cx, dx
 			sub		cx, di
 			shr		cx, 1
-			cld
+			cld												;Clear direction flag, low to high
 			push	es
 			mov		ax, @data
 			mov		es, ax
@@ -281,16 +625,16 @@ Choose_Map proc
 			
 			lea		cx, map
 			add		cx, dx
-			.if		di >= cx
+			.if		di >= cx								;exceed the max, set di to the 0 byte in map array
 				lea		di, map
 			.endif
 		mov		mapType, di
 		setMap 	mapType
 		.endif
 		
-		.if		char_status[5] == 1 && char_status[10] == 1
+		.if		char_status[5] == 1 && char_status[10] == 1	;Done
 		.else
-		jmp			L1
+		jmp			L1										
 		.endif
 	set_Background bg_color
 	mov		mapType, di
@@ -298,13 +642,13 @@ Choose_Map proc
 	ret
 Choose_Map endp
 
-SetTank_Position proc
-	push	di
+
+
+SetTank_Position proc										;Place the tanks based on th map selected
+	push	di												;the result of Choose_map
 	mov		cx, di
-	sub		cx, offset map
+	sub		cx, offset map									;sub start address of map
 	.if		cx > 0
-		mov		cx, di
-		sub		cx, offset map
 		mov		bx, 0
 		L1:
 			.if		word ptr[di] == 0ffffh
@@ -314,21 +658,21 @@ SetTank_Position proc
 		loop 	L1
 	.else
 		mov		bx, 0
-	.endif
+	.endif													;bx equals to what map selected
 	push	bx
 	mov		cx, 3
-	shl		bx, cl
-	pop		ax
+	shl		bx, cl											;bx*8
+	pop		ax												
 	mov		cx, 2
-	shl		ax, cl
-	add		bx, ax
+	shl		ax, cl											;what map selected * 4
+	add		bx, ax											;what map selected * 12
 	lea		di, object_tank
 	lea		si, TankInit_set
 	add		si, bx
 	push	es
 	mov		ax, @data
 	mov		es, ax
-	cld
+	cld														;clear direction flag
 	mov		cx, 3
 	add		di, 2
 	rep		movsw
@@ -347,7 +691,7 @@ About proc
 	SetCursor 0, 36
 	PrintString WelcomeStr2
 	L1:
-	cmp		char_status[0], 1
+	cmp		char_status[0], 1								;esc to home page
 	jne		L1
 	ret
 About endp
@@ -357,587 +701,11 @@ Tutorial proc
 	SetCursor 0, 0
 	PrintString TutorStr
 	L1:
-	cmp		char_status[0], 1
+	cmp		char_status[0], 1								;esc to home page
 	jne		L1
 	ret
 Tutorial endp
 
-Tank_Customize proc
-	set_Background 00h
-	SetCursor 0, 0
-	PrintString BtnStr1
-	check_loop:
-	.if		char_status[5] == 1 || char_status[10] == 1
-		jmp		check_loop
-	.endif
-	
-	set_Background 00h
-	SetCursor 0, 0
-	PrintString TankStr1
-	SetCursor 0, 21
-	PrintString TankStr2
-	mov 	word ptr object_tank[2], 200
-	mov 	word ptr object_tank[4], 300
-	mov 	word ptr object_tank[6], 1
-	mov 	word ptr object_tank[16], 600
-	mov 	word ptr object_tank[18], 300
-	mov 	word ptr object_tank[20], 1
-	Print_Tank
-	xor		ax, ax
-	xor		cx, cx
-	lea		di, offset object_tank
-	add		di, 8
-	lea		si, offset object_tank
-	add		si, 22
-
-	PrintP2:
-	mov		bx, si
-	sub		bx, offset object_tank
-	.if		bx == 22
-	SetCursor 69, 15
-	Delete_Line
-	PrintString TankStr4
-	.endif
-	.if		bx == 24
-	SetCursor 69, 15
-	Delete_Line
-	PrintString TankStr6
-	.endif	
-	.if		bx == 26
-	SetCursor 69, 15
-	Delete_Line
-	PrintString TankStr5
-	.endif
-
-	PrintP1:
-	bt		ax, 0
-	jc		Determine2
-	mov		bx, di
-	sub		bx, offset object_tank
-	.if		bx == 8
-	SetCursor 19, 15
-	Delete_Line
-	PrintString TankStr4
-	.endif
-	.if		bx == 10
-	SetCursor 19, 15
-	Delete_Line
-	PrintString TankStr6
-	.endif
-	.if		bx == 12
-	SetCursor 19, 15
-	Delete_Line
-	PrintString TankStr5
-	.endif
-	jmp		Determine2
-	Start:
-	.if		char_status[0] == 1
-		set_Background bg_color
-		mov		ax, 1
-		ret	
-	.endif
-	.if		char_status[5] == 1
-		bt		cx, 2
-		jc		Determine2
-		bts		cx, 2	
-		btc		ax, 0
-		jc		Player1_space
-		SetCursor 19, 15
-		Delete_Line
-		PrintString TankStr3
-		jmp		exit_P1
-		Player1_space:
-		jmp		PrintP1
-		exit_P1:
-	.endif
-	.if		char_status[5] == 0
-		btr		cx, 2
-	.endif
-	.if		char_status[10] == 1
-		bt		cx, 5
-		jc		Start
-		bts		cx, 5
-		btc		ax, 1
-		jc		Player2_enter
-		SetCursor 69, 15
-		Delete_Line
-		PrintString TankStr3
-		jmp		exit_P2
-		Player2_enter:
-		jmp		PrintP2
-		exit_P2:
-	.endif
-	.if		char_status[10] == 0
-		btr		cx, 5
-	.endif
-	.if		al == 00000011b
-		jmp		set_Complete
-	.endif
-
-	bt		ax, 0
-	jc		Determine2
-	.if		char_status[1] == 1
-		inc		byte ptr[di]
-		Print_Tank
-		jmp		Determine2
-	.endif
-	.if		char_status[2] == 1
-		dec		byte ptr[di]
-		Print_Tank
-		jmp		Determine2
-	.endif
-	.if		char_status[3] == 1
-		bt		cx, 0
-		jc		Determine2
-		bts		cx, 0		
-		sub		di, 2
-		mov		bx, di
-		sub		bx, offset object_tank
-		.if		bx <= 7
-		add		di, 6
-		.endif
-		jmp		PrintP1				
-	.endif
-	.if		char_status[3] == 0
-		btr		cx, 0
-	.endif
-	.if		char_status[4] == 1
-		bt		cx, 1
-		jc		Determine2
-		bts		cx, 1	
-		add		di, 2
-		mov		bx, di
-		sub		bx, offset object_tank
-		.if		bx >= 14
-		sub		di, 6
-		.endif
-		jmp		PrintP1
-	.endif
-	.if		char_status[4] == 0
-		btr		cx, 1
-	.endif
-
-
-	
-	Determine2:
-	bt		ax, 1
-	jc		Start
-
-	.if		char_status[6] == 1
-		inc		byte ptr[si]
-		Print_Tank
-		jmp		Start
-	.endif
-	.if		char_status[7] == 1
-		dec		byte ptr[si]
-		Print_Tank
-		jmp		Start
-	.endif
-	.if		char_status[8] == 1
-		bt		cx, 3
-		jc		Start
-		bts		cx, 3	
-		sub		si, 2
-		mov		bx, si
-		sub		bx, offset object_tank
-		sub		bx, 14
-		.if		bx <= 7
-		add		si, 6
-		.endif				
-		jmp		PrintP2
-	.endif
-	.if		char_status[8] == 0
-		btr		cx, 3
-	.endif
-	.if		char_status[9] == 1
-		bt		cx, 4
-		jc		Start
-		bts		cx, 4	
-		add		si, 2
-		mov		bx, si
-		sub		bx, offset object_tank
-		sub		bx, 14
-		.if		bx >= 14
-		sub		si, 6
-		.endif
-		jmp		PrintP2
-	.endif
-	.if		char_status[9] == 0
-		btr		cx, 4
-	.endif
-	jmp			Start
-	
-	set_Complete:
-	push 	es
-	mov		ax, @data
-	mov		es, ax
-	lea		di, file_in[2]
-	lea		si, object_tank[8]
-	mov		cx, 3
-	cld
-	rep		movsw
-	lea		di, file_in[8]
-	lea		si, object_tank[22] 
-	mov		cx, 3
-	rep		movsw
-	pop		es
-	mov 	ah, 3Dh
-    mov 	al, 2
-    lea 	dx, file_name
-    int 	21h
-    mov 	bx, file_handle
-    mov 	cx, 14
-    lea 	dx, file_in
-    mov 	ah, 40h
-    int 	21h
-    mov 	ah, 3Eh
-    mov 	bx, file_handle
-    int 	21h
-	set_Background bg_color
-	xor		ax, ax
-	ret
-Tank_Customize endp
-
-
-Update_Tank macro UserID, Para
-	Local FindLoop, ObjectNotFound, ObjectFound, Act_Control, exit_macro, Forward_Process, Reverse_Process, Left_Process, Right_Process
-	Local Forward1, Forward2, Forward3, Forward4, Forward5, Forward6, Forward7, Forward8
-	Local Reverse1, Reverse2, Reverse3, Reverse4, Reverse5, Reverse6, Reverse7, Reverse8
-	Local CheckComplete, Under_Xmax, Above_Xmin, Under_Ymax, DischargeProcess
-	Local checkObstacle, L1, Recheck, InYRange, MeetObstacle
-	pusha
-	lea			si, object_tank
-	mov			cx, LENGTHOF object_tank
-	FindLoop:							
-		cmp			word ptr [si], UserID
-		je			ObjectFound
-		ObjectNotFound:
-		add			si, 14
-		sub			cx, 7
-		cmp			cx, 0
-		jle			exit_macro
-		jmp			FindLoop
-	ObjectFound:
-	Erase_Tank 	
-	mov			ax, word ptr[si+2]
-	mov			bx, word ptr[si+4]
-	mov			cx, Para
-	Act_Control:
-	cmp			cx, 1
-	je			Forward_Process
-	cmp			cx, 3
-	je			Reverse_Process
-	cmp			cx, 2
-	je			Right_Process
-	cmp			cx, 4
-	je			Left_Process
-	cmp			cx, 5
-	je			DischargeProcess
-	jmp			exit_macro
-	Right_Process:
-	add			word ptr[si+6], 1
-	cmp			word ptr[si+6], 9
-	jl			exit_macro
-	mov			word ptr[si+6], 1
-	jmp 		exit_macro
-	Left_Process:
-	sub			word ptr[si+6], 1
-	cmp			word ptr[si+6], 0
-	jg			exit_macro
-	mov			word ptr[si+6], 8
-	jmp 		exit_macro
-	Forward_Process:
-	cmp			word ptr[si+6], 1
-	je			Forward1
-	cmp			word ptr[si+6], 2
-	je			Forward2
-	cmp			word ptr[si+6], 3
-	je			Forward3
-	cmp			word ptr[si+6], 4
-	je			Forward4
-	cmp			word ptr[si+6], 5
-	je			Forward5
-	cmp			word ptr[si+6], 6
-	je			Forward6
-	cmp			word ptr[si+6], 7
-	je			Forward7
-	cmp			word ptr[si+6], 8
-	je			Forward8
-	Forward1:
-	sub			bx, speed_of_Tank
-	jmp			exit_macro
-	Forward2:
-	add			ax, speed_of_Tank
-	sub			bx, speed_of_Tank
-	jmp			exit_macro
-	Forward3:
-	add			ax, speed_of_Tank
-	jmp			exit_macro
-	Forward4:
-	add			ax, speed_of_Tank
-	add 		bx, speed_of_Tank 
-	jmp			exit_macro
-	Forward5:
-	add			bx, speed_of_Tank
-	jmp 		exit_macro
-	Forward6:
-	add			bx, speed_of_Tank
-	sub			ax, speed_of_Tank
-	jmp			exit_macro
-	Forward7:
-	sub			ax, speed_of_Tank
-	jmp			exit_macro
-	Forward8:
-	sub			ax, speed_of_Tank
-	sub			bx, speed_of_Tank
-	jmp			exit_macro
-	Reverse_Process:
-	cmp			word ptr[si+6], 1
-	je			Reverse1
-	cmp			word ptr[si+6], 2
-	je			Reverse2
-	cmp			word ptr[si+6], 3
-	je			Reverse3
-	cmp			word ptr[si+6], 4
-	je			Reverse4
-	cmp			word ptr[si+6], 5
-	je			Reverse5
-	cmp			word ptr[si+6], 6
-	je			Reverse6
-	cmp			word ptr[si+6], 7
-	je			Reverse7
-	cmp			word ptr[si+6], 8
-	je			Reverse8
-	Reverse1:
-	add			bx, speed_of_Tank
-	jmp			exit_macro
-	Reverse2:
-	sub			ax, speed_of_Tank
-	add			bx, speed_of_Tank
-	jmp			exit_macro
-	Reverse3:
-	sub			ax, speed_of_Tank
-	jmp			exit_macro
-	Reverse4:
-	sub			ax, speed_of_Tank
-	sub 		bx, speed_of_Tank 
-	jmp			exit_macro
-	Reverse5:
-	sub			bx, speed_of_Tank
-	jmp 		exit_macro
-	Reverse6:
-	sub			bx, speed_of_Tank
-	add			ax, speed_of_Tank
-	jmp			exit_macro
-	Reverse7:
-	add			ax, speed_of_Tank
-	jmp			exit_macro
-	Reverse8:
-	add			ax, speed_of_Tank
-	add			bx, speed_of_Tank
-	jmp			exit_macro
-	DischargeProcess:
-	;Create_Bullet
-	Discharge_Bullet
-	jmp			CheckComplete
-	exit_macro:
-	push		word ptr[si+2]
-	push		word ptr[si+4]		
-	mov			word ptr[si+2], ax
-	mov			word ptr[si+4], bx
-	mov			cx, Screen_Size[0]
-	sub			cx, 30
-	cmp			word ptr[si+2], cx
-	jl			Under_Xmax
-	mov			word ptr[si+2], cx
-	Under_Xmax:
-	mov			cx, 30
-	cmp 		word ptr[si+2], cx
-	jge			Above_Xmin
-	mov			word ptr[si+2], cx
-	Above_Xmin:
-	mov			cx, Screen_Size[2]
-	sub			cx, 30
-	cmp			word ptr[si+4], cx
-	jl			Under_Ymax
-	mov			word ptr[si+4], cx
-	Under_Ymax:
-	mov			cx, 30
-	cmp 		word ptr[si+4], cx
-	jg			checkObstacle
-	mov			word ptr[si+4], cx
-	
-	checkObstacle:
-	pop			bx
-	pop			ax
-	mov 		di, mapType
-		L1:
-		mov			cx, word ptr[di+4]		;xMax of obstacle
-		add			cx, 20
-		cmp			word ptr[si+2], cx		;if xPosition is bigger than xMax
-		jg			Recheck					;check next obstacle
-		mov			cx, word ptr[di]		;xMin of obstacle
-		sub			cx, 20
-		cmp			word ptr[si+2], cx		;if xPosition is bigger than xMin
-		jge			InYRange				;Mean it is in the range of obstacle in x asix 
-		Recheck:
-		add			di, 8			
-		cmp			word ptr[di], 0FFFFh
-		jne			L1
-		jmp			CheckComplete
-		InYRange:
-		mov			cx, word ptr[di+6]		;YMax of obstacle
-		add			cx, 20
-		cmp			word ptr[si+4], cx		;if yPosition is bigger than yMax
-		jg			Recheck					;check next obstacle
-		mov			cx, word ptr[di+2]		;yMin of obstacle
-		sub 		cx, 20
-		cmp			word ptr[si+4], cx		;if yPosition is bigger than yMin
-		jge			MeetObstacle			;bullet meet obstacle
-		jmp 		Recheck
-	MeetObstacle:
-	mov			word ptr[si+2], ax
-	mov			word ptr[si+4], bx		
-	CheckComplete:
-	Print_Tank
-	popa
-endm
-GameA_Keyboard macro
-	Local		exit_macro, checkP1_Down, checkP1_Down, checkP1_Left, checkP1_Right
-	Local		checkP2_Up, checkP2_Down, checkP2_Left, checkP2_Right, checkP2_Discharge
-	Local		P1_Left_Write, P1_Right_Write, P2_Left_Write, P2_Right_Write, P1_Discharge_Write, P2_Discharge_Write
-
-	cmp			byte ptr char_status[0], 1
-	je			exit_game
-	cmp			byte ptr char_status[1], 1
-	jne			checkP1_Down
-	;P1 up 
-	Update_Tank 1, 1
-	checkP1_Down:
-	cmp			byte ptr char_status[2], 1
-	jne			checkP1_Left
-	;P2 Down
-	Update_Tank 1,3
-	checkP1_Left:
-	cmp			byte ptr char_status[3], 1
-	jne			checkP1_Right
-	;p1 Left
-	;mov 		ah, 2ch
-	;int 		21h
-	;sub			dx, word ptr game_timer[6]
-	;cmp 		dx, 5
-	;jge			P1_Left_Write
-	;sub			cx, word ptr game_timer[4]
-	;jg			P1_Left_Write
-	;jmp			checkP1_Right
-	;P1_Left_Write:
-	;mov 		ah, 2ch
-	;int 		21h
-	;mov 		word ptr game_timer[4], cx
-	;mov			word ptr game_timer[6], dx
-	Update_Tank 1, 4
-	checkP1_Right:
-	cmp			byte ptr char_status[4], 1
-	jne			checkP1_Discharge
-	;P1 Right
-	;mov 		ah, 2ch
-	;int 		21h
-	;sub			dx, word ptr game_timer[6]
-	;cmp 		dx, 5
-	;jge			P1_Right_Write
-	;sub			cx, word ptr game_timer[4]
-	;jg			P1_Right_Write
-	;jmp			checkP1_Discharge
-	;P1_Right_Write:
-	;mov 		ah, 2ch
-	;int 		21h
-	;mov 		word ptr game_timer[4], cx
-	;mov			word ptr game_timer[6], dx
-	Update_Tank 1, 2
-	checkP1_Discharge:
-	cmp			byte ptr char_status[5], 1
-	jne			checkP2_Up
-	;P1 Discharge
-	mov 		ah, 2ch
-	int 		21h
-	sub			dx, word ptr game_timer[6]
-	cmp 		dx, 5
-	jge			P1_Discharge_Write
-	sub			cx, word ptr game_timer[4]
-	jg			P1_Discharge_Write
-	jmp			checkP2_Up
-	P1_Discharge_Write:
-	mov 		ah, 2ch
-	int 		21h
-	mov 		word ptr game_timer[4], cx
-	mov			word ptr game_timer[6], dx
-	Update_Tank 1, 5
-	checkP2_Up:
-	cmp			byte ptr char_status[6], 1
-	jne			checkP2_Down
-	;P2 Up
-	Update_Tank 2,1
-	checkP2_Down:
-	cmp			byte ptr char_status[7], 1
-	jne			checkP2_Left
-	;P2 Down
-	Update_Tank 2, 3
-	checkP2_Left:
-	cmp			byte ptr char_status[8], 1
-	jne			checkP2_Right
-	;P2 Left
-	;mov 		ah, 2ch
-	;int 		21h
-	;sub			dx, word ptr game_timer[6]
-	;cmp 		dx, 5
-	;jge			P2_Left_Write
-	;sub			cx, word ptr game_timer[4]
-	;jg			P2_Left_Write
-	;jmp			checkP2_Right
-	;P2_Left_Write:
-	;mov 		ah, 2ch
-	;int 		21h
-	;mov 		word ptr game_timer[4], cx
-	;mov			word ptr game_timer[6], dx
-	Update_Tank 2, 4
-	checkP2_Right:
-	cmp			byte ptr char_status[9], 1
-	jne			checkP2_Discharge
-	;P2 Right
-	;mov 		ah, 2ch
-	;int 		21h
-	;sub			dx, word ptr game_timer[6]
-	;cmp 		dx, 5
-	;jge			P2_Right_Write
-	;sub			cx, word ptr game_timer[4]
-	;jg			P2_Right_Write
-	;jmp			checkP2_Discharge
-	;P2_Right_Write:
-	;mov 		ah, 2ch
-	;int 		21h
-	;mov 		word ptr game_timer[4], cx
-	;mov			word ptr game_timer[6], dx
-	Update_Tank 2, 2
-	checkP2_Discharge:
-	cmp			byte ptr char_status[10], 1
-	jne			exit_macro
-	;P2 Discharge
-	mov 		ah, 2ch
-	int 		21h
-	sub			dx, word ptr game_timer[6]
-	cmp 		dx, 5
-	jge			P2_Discharge_Write
-	sub			cx, word ptr game_timer[4]
-	jg			P2_Discharge_Write
-	jmp			exit_macro
-	P2_Discharge_Write:
-	mov 		ah, 2ch
-	int 		21h
-	mov 		word ptr game_timer[4], cx
-	mov			word ptr game_timer[6], dx
-	Update_Tank 2, 5
-	exit_macro:
-endm
 
 
 GetFile proc
@@ -947,47 +715,56 @@ GetFile proc
     lea dx, file_name
     int 21h
     mov file_handle, ax
-    jc NO_File
-    jnc FindFIle
+    jc NO_File											;Failed = File not found
+    jnc FindFIle										;Successed = found
     NO_File:
-    mov ah, 3ch
+    mov ah, 3ch											;Create file
     mov cx, 7
     lea dx, file_name
     int 21h
-    mov ah, 3Dh
+    mov ah, 3Dh											;open file mode W/R
     mov al, 2
     lea dx, file_name
     int 21h
-    mov file_handle, ax
+    mov file_handle, ax									;Store default value into GameData
     mov ah, 40h
     mov bx, file_handle
     mov cx, 14
     lea dx, file_default
     int 21h
-    mov ah, 3Eh
+    mov ah, 3Eh											;close file
     mov bx, file_handle
     int 21h
-	Introdution IntroStr, TutorStr
+	Introdution IntroStr, TutorStr						;Introdution of the game
     jmp Open_FIle
     FindFIle:
-    mov ah, 3fh
+    mov ah, 3fh											;Read what in file
     mov bx, file_handle
     mov cx, 14
     lea dx, file_in
     int 21h
-    .if word ptr file_in[0]!= 0ff87h
+    .if word ptr file_in[0]!= 0ff87h					;File format not correct
         mov ah, 3Eh
         mov bx, file_handle
         int 21h
         jmp NO_File
     .endif
-    mov ah, 3Eh
+    mov ah, 3Eh											;close file
     mov bx, file_handle
     int 21h
 	ret
 GetFile endp
 
-
+ShowTitle proc
+	mov di, word ptr TitleColor[0]						;Get previous color
+	add di, di
+	print_title 100, 50, word ptr TitleColor[di]
+	inc word ptr TitleColor
+	.if word ptr TitleColor[di+2] == 0ffffh				;exceed the max
+	mov word ptr TitleColor[0], 1						;reset to first color
+	.endif
+	ret
+ShowTitle endp
 
 GameMode_A proc
 	push		bp
@@ -997,7 +774,7 @@ GameMode_A proc
 	SetCursor   0, 0
 	PrintString BtnStr1
 	exitLoop:
-		.if	char_status[5] != 0 || char_status[10] != 0
+		.if	char_status[5] != 0 || char_status[10] != 0	;wait space and enter release
 			jmp			exitLoop
 		.endif
 	SetCursor 0, 0
@@ -1011,8 +788,7 @@ GameMode_A proc
 	mov			word ptr game_timer[2], dx
 	mov 		word ptr game_timer[4], cx
 	mov			word ptr game_timer[6], dx
-	mov			word ptr game_timer[8], cx
-	mov			word ptr game_timer[10], dx
+	
 	
 	GameA:
 	
@@ -1029,10 +805,10 @@ GameMode_A proc
 	CheckTimeB:
 	mov 		ah, 2ch
 	int 		21h
-	sub			dx, word ptr game_timer[10]
+	sub			dx, word ptr game_timer[6]
 	cmp 		dx, 20
 	jge			TimeupB
-	sub			cx, word ptr game_timer[8]
+	sub			cx, word ptr game_timer[4]
 	jg			TimeupB
 
 	jmp			GameA
@@ -1049,15 +825,15 @@ GameMode_A proc
 	GameA_Keyboard
 	mov 		ah, 2ch
 	int 		21h
-	mov 		word ptr game_timer[8], cx
-	mov			word ptr game_timer[10], dx
+	mov 		word ptr game_timer[4], cx
+	mov			word ptr game_timer[6], dx
 	jmp			GameA
 
-	GameSet:
+	GameSet:											;Game set
 	push		si
 	set_Background bg_color
 	pop			si
-	sub			si, offset object_tank
+	sub			si, offset object_tank					;Find the winner
 	push		2
 	invoke 		musicInit
 	.if			si == 0
@@ -1068,10 +844,6 @@ GameMode_A proc
 		Print_Tank
 		SetCursor	25, 36
 		PrintString winStr2
-		wait_player2:
-		invoke		Playmusic
-		cmp			char_status[0], 1
-		jne			wait_player2
 	.endif
 	.if			si == 14
 		mov			word ptr object_tank[2], 400
@@ -1081,12 +853,12 @@ GameMode_A proc
 		Print_Tank
 		SetCursor	25, 36
 		PrintString winStr1
-		wait_player1:
-		invoke		Playmusic
-		cmp			char_status[0], 1
-		jne			wait_player1
 	.endif
-	push		3
+	wait_player:
+		invoke		Playmusic						;Play music
+		cmp			char_status[0], 1
+		jne			wait_player
+	push		3									;Stop the music
 	invoke		musicInit
 	invoke		Playmusic
 	exit_game:
@@ -1095,10 +867,10 @@ GameMode_A proc
 	ret
 GameMode_A endp
 
-init_Page proc
+init_Page proc		
+	call	GetFile								
     set_Background 00h
-	Clear_All_Object
-	invoke	ShowTitle
+	Clear_All_Object								;Clear bullets and tanks
 	Create_Tank 1, 50, 550, 2, word ptr file_in[2], word ptr file_in[4], word ptr file_in[6]
 	Create_Tank 2, 750, 550, 8, word ptr file_in[8], word ptr file_in[10], word ptr file_in[12]
 	Print_Tank
@@ -1110,11 +882,12 @@ init_Page proc
 	PrintString MenuStr3
 	SetCursor 36, 36
 	PrintString MenuStr4
-    ret
+    print_title 100, 50, 6
+	ret
 init_Page endp
 
 MyInterrupt proc
-	cli							;Disable Interrupt
+	cli								;Disable Interrupt
 	pushf
     push        ax
     push        cx
@@ -1122,20 +895,20 @@ MyInterrupt proc
     push        es
     mov         ax, @data
     mov         es, ax
-    in 			al, 60h
+    in 			al, 60h				;Get Scan code
 	push		ax
 	cld
-	and			al, 01111111b
-	lea 		di, char_table
+	and			al, 01111111b	
+	lea 		di, char_table		;which key?
 	mov 		cx, LENGTHOF char_table
 	repne  		scasb
 	pop			ax
-	je          FindChar
+	je          FindChar			;Find in char_table
     jmp			exit_Handler
     FindChar:
     sub			di, offset char_table
 	dec         di
-	bt			ax, 7
+	bt			ax, 7				;Press or release
 	jnc			Press
 	jc			Release
 	Press:
@@ -1145,7 +918,7 @@ MyInterrupt proc
 	mov			byte ptr char_status[di], 0
 	jmp			exit_Handler
     exit_Handler:
-	mov 		al, 20h
+	mov 		al, 20h				;acknowledge the interrupt
     out 		20h, al
 	pop         es
     pop         di
