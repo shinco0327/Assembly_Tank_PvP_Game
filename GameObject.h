@@ -217,7 +217,7 @@ endm
 
 Update_Bullet macro
     Local       checkLoop, Check_Collision, MeetBoundary, InYRange, Make_opposite, NextObject, L2, InXRange, ObjectOut
-    Local       proc_end, L1, Recheck, Update, Make_oppositeX, Make_oppositeY, Recheck2
+    Local       proc_end, L1, Out_Range, positive1, positive2, positive3, positive4, No_Move
     pusha
 	lea			di, object 
 	mov			cx, LENGTHOF object
@@ -226,7 +226,7 @@ Update_Bullet macro
 		jne			NextObject
 		
 		draw_circle word ptr[di+2], word ptr[di+4], 5, bg_color
-		
+		xor			dx, dx
 		Check_Collision:
 		mov			ax, word ptr Screen_Size[0]
 		sub			ax, 13
@@ -245,60 +245,112 @@ Update_Bullet macro
 		;check collision with obstacle
 		mov 		si, mapType
 		L1:
-		mov			ax, word ptr[si+4]		;xMax of obstacle
-		add			ax, 8
-		cmp			word ptr[di+2], ax		;if xPosition is bigger than xMax
-		jg			Recheck					;check next obstacle
-		mov			ax, word ptr[si]		;xMin of obstacle
-		sub			ax, 8
-		cmp			word ptr[di+2], ax		;if xPosition is bigger than xMin
-		jge			InYRange				;Mean it is in the range of obstacle in x asix 
-		Recheck:
+			mov			ax, word ptr[si+4]
+			add			ax, 13
+			.if			word ptr DS:[di+2] > ax
+				jmp			Out_Range
+			.endif
+			mov			ax, word ptr[si]
+			sub			ax, 13
+			.if			word ptr DS:[di+2] < ax
+				jmp			Out_Range
+			.endif
+			mov			ax, word ptr[si+6]
+			add			ax, 13
+			.if			word ptr DS:[di+4] > ax
+				jmp			Out_Range
+			.endif
+			mov			ax, word ptr[si+2]
+			sub			ax, 13
+			cmp			word ptr DS:[di+4], ax
+			jle			Out_Range
+			
+			
+			push		sp
+			mov			bp, sp
+			mov			ax, word ptr[si]		;With X0
+			sub			ax, word ptr[di+2]
+			cmp			ax, 0
+			jge			positive1
+			dec			ax
+			not			ax
+			positive1:
+			push		ax
+			mov			ax, word ptr[di+2]
+			sub			ax, word ptr[si+4]		;With X1
+			cmp			ax, 0
+			jge			positive2
+			dec			ax
+			not			ax
+			positive2:
+			push		ax
+			mov			ax, word ptr[si+2]		;With y0
+			sub			ax, word ptr[di+4]
+			cmp			ax, 0
+			jge			positive3
+			dec			ax
+			not			ax
+			positive3:
+			push		ax
+			mov			ax, word ptr[si+6]		;With y1
+			sub			ax, word ptr[di+4]
+			cmp			ax, 0
+			jge			positive4
+			dec			ax
+			not			ax
+			positive4:
+			push		ax
+			push		cx
+			xor			bx, bx
+			mov			dx, 0FFFFh
+			mov			cx, 4
+
+			L2:
+			sub			bp, 2
+				.if 		dx >= word ptr SS:[bp] && word ptr SS:[BP] < 13
+					mov			dx, word ptr SS:[bp]
+					mov			bx, cx
+				.endif
+			loop 		L2
+			pop			cx
+			mov			sp, word ptr SS:[bp+8]
+			mov			ax, word ptr DS:[di+2]
+			mov			dx, word ptr DS:[di+4]
+			.if			bx == 4 || bx ==3
+			draw_circle word ptr[di+2], word ptr[di+4], 5, 2Ah  
+				.if			dx < word ptr[si+2] || dx > word ptr[si+6]
+				draw_circle word ptr[di+2], word ptr[di+4], 5, 40h  
+					bts			dx, 0
+					jmp			Make_oppositeX
+				.endif
+				jmp		Make_oppositeY			
+			.endif
+			.if			bx == 2 || bx == 1
+			draw_circle word ptr[di+2], word ptr[di+4], 5, 36h
+				.if			ax < word ptr[si] || ax > word ptr[si+4] 
+					bts			dx, 0
+					jmp			Make_oppositeY
+				.endif
+				jmp		Make_oppositeX
+			.endif
+			;.if			bx == 1 ;&& ax > word ptr[si] && ax < word ptr[si+4] 
+			;	jmp			Make_oppositeX
+			;.endif
+			;.if			bx == 2 ;&& ax > word ptr[si] && ax < word ptr[si+4] 
+			;	jmp			Make_oppositeX
+			;.endif
+			;.if			bx == 3 ;&& bx > word ptr[si+2] && bx < word ptr[si+6] 
+			;	jmp			Make_oppositeY
+			;.endif
+			;.if			bx == 4 && bx > word ptr[si+2] && bx < word ptr[si+6] 
+			;	jmp			Make_oppositeY
+			;.endif
+		Out_Range:
 		add			si, 8			
 		cmp			word ptr[si], 0FFFFh
 		jne			L1
-		mov 		si, mapType
-		jmp			L2
-		InYRange:
-		mov			ax, word ptr[si+6]		;YMax of obstacle
-		sub			ax, 5
-		cmp			word ptr[di+4], ax		;if yPosition is bigger than yMax
-		jg			L2						;check next obstacle
-		mov			ax, word ptr[si+2]		;yMin of obstacle
-		add ax,5
-		cmp			word ptr[di+4], ax		;if yPosition is bigger than yMin
-		jge			Make_oppositeY			;bullet meet obstacle
-		jmp 		Recheck
-
-
+		jmp			Update
 		
-		L2:
-
-		mov			ax, word ptr[si+6]		;yMax of obstacle
-		add 		ax, 8
-		cmp			word ptr[di+4], ax		;if yPosition is bigger than yMax
-		jg			Recheck2					;check next obstacle
-		mov			ax, word ptr[si+2]		;yMin of obstacle
-		sub			ax, 8
-		cmp			word ptr[di+4], ax		;if yPosition is bigger than yMin
-		jge			InXRange				;Mean it is in the range of obstacle in y asix 
-		Recheck2:
-		add			si, 8			
-		cmp			word ptr[si], 0FFFFh
-		jne			L2
-		je			Update
-		InXRange:
-		mov			ax, word ptr[si+4]		;XMax of obstacle
-		sub			ax, 5
-		cmp			word ptr[di+2], ax		;if XPosition is bigger than XMax
-		jg			Recheck2				;check next obstacle
-		mov			ax, word ptr[si]		;XMin of obstacle
-		add			ax, 5
-		cmp			word ptr[di+2], ax		;if xPosition is bigger than xMin
-		jge			Make_oppositeX			;bullet meet obstacle
-		jmp 		Recheck2
-
-
 
 		Make_oppositeX:
 		xor			bx, bx
@@ -319,7 +371,12 @@ Update_Bullet macro
 		jmp MeetBoundary
 
 		MeetBoundary:
+		bt			dx, 0
+		jnc			No_Move
+		mov			speed_of_Bullet, 5
 		Bullet_move
+		mov			speed_of_Bullet, 8
+		No_Move:
 		inc			word ptr[di+8]
 		mov			ax, bound_time
 		cmp			word ptr [di+8], ax
