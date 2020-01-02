@@ -8,3 +8,6 @@ print_left          PROTO
 print_right         PROTO
 pj5_Init            PROTO
 TankProcess         PROTO 
+musicInit           PROTO
+Playmusic           PROTO  
+PlayLoopMusic       PROTO

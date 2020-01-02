@@ -1,3 +1,9 @@
+;uProcessor Final Project
+;File name: pj5.asm
+;Date: 2020/1/1
+;By B10707009 and B10707049
+;National Taiwan University of Science And Technology
+;Department of Electrical Engineering
 .model small
 
 .stack 500h
@@ -10,7 +16,7 @@ height   dw 29
 count  dw 0
 x dw 240 ;center
 y dw 320
-
+strcount db 0
 h1 dw 15
 h2 dw 21
 h3 dw 15
@@ -28,25 +34,146 @@ Tankvesa_info dd ?
 TankScreen_Size dw 800, 600
 extstr1 db "I learn Assembly.", 10, 13, "And, it is a external file$"
 
+melody dw 0000, 9121, 8126, 7239, 6833, 6087, 5423, 4831, 4560, 4063, 3619, 3416, 3043, 2711, 2415, 2280, 2031, 1809, 1715, 1521, 1355, 1207
+musicOffset dw ?
+M_GotShoot 	dw 0ff87h
+			dw 0100h, 0008h
+			dw 0070h, 0008h
+			dw 0060h, 0008h
+			dw 0001h, 0020h
+			dw 0003h, 0010h
+			dw 0000h, 0001h
+			dw 0003h, 0010h
+			dw 0002h, 0010h
+			dw 0000h, 0001h
+			dw 0002h, 0010h
+			dw 0001h, 0020h, 0ffffh
+M_Welcome	dw 0ff87h, 0050h, 0010h
+			dw 0000h, 0002h
+			dw 0050h, 0010h
+			dw 0000h, 0002h
+			dw 0030h, 0010h
+			dw 0000h, 0002h
+			dw 0030h, 0010h
+			dw 0000h, 0002h
+			dw 0020h, 0010h
+			dw 0000h, 0002h
+			dw 0020h, 0010h
+			dw 0000h, 0002h
+			dw 0010h, 0080h, 0ffffh
+M_twoTiger dw 0ff87h, 0010h, 0040h 
+	dw	0020h, 0040h 
+	dw	0030h, 0040h 
+	dw	0010h, 0040h
+	dw	0000h, 0010h
+	dw	0010h, 0040h
+	dw	0020h, 0040h 
+	dw	0030h, 0040h
+	dw	0010h, 0040h
+	dw	0000h, 0010h
+	dw	0030h, 0040h 
+	dw	0040h, 0040h 
+	dw	0050h, 0040h
+	dw	0000h, 0010h
+	dw	0030h, 0040h 
+	dw	0040h, 0040h 
+	dw	0050h, 0040h
+	dw	0000h, 0010h
+	dw	0050h, 0030h
+	dw	0060h, 0030h
+	dw	0050h, 0030h
+	dw	0040h, 0030h
+	dw	0030h, 0030h
+	dw	0010h, 0040h
+	dw 	0000h, 0010h
+	dw	0050h, 0040h
+	dw	0060h, 0030h
+	dw	0050h, 0040h
+	dw	0040h, 0040h
+	dw	0030h, 0040h
+	dw	0010h, 0040h
+	dw	0000h, 0010h
+	dw	0010h, 0040h
+	dw	0005h, 0060h
+	dw	0010h, 0040h
+	dw	0000h, 0010h
+	dw	0010h, 0040h
+	dw	0005h, 0060h
+	dw	0010h, 0040h, 0FFFFh
+
+M_Win 	dw 0ff87h
+		dw 0000h, 0200h
+	  	dw 0010h, 0010h
+		dw 0030h, 0010h
+		dw 0000h, 0001h
+		dw 0030h, 0010h
+		dw 0020h, 0001h
+		dw 0040h, 0010h
+		dw 0000h, 0001h
+		dw 0040h, 0010h
+		dw 0070h, 0010h
+		dw 0000h, 0001h
+		dw 0070h, 0010h
+		dw 0060h, 0010h
+		dw 0070h, 0010h
+		dw 0100h, 0010h, 0ffffh
+M_op	dw 0ff87h, 0030h, 0020h
+		dw 0000h, 0005h
+		dw 0030h, 0020h
+		dw 0040h, 0020h
+		dw 0050h, 0020h
+		dw 0000h, 0001h
+		dw 0050h, 0020h
+		dw 0040h, 0020h
+		dw 0030h, 0020h
+		dw 0020h, 0020h
+		dw 0010h, 0020h
+		dw 0000h, 0001h
+		dw 0010h, 0020h
+		dw 0020h, 0020h
+		dw 0030h, 0020h
+		dw 0000h, 0001h
+		dw 0030h, 0025h
+		dw 0020h, 0020h
+		dw 0000h, 0001h
+		dw 0020h, 0030h
+		dw 0000h, 0010h
+		dw 0030h, 0020h
+		dw 0000h, 0005h
+		dw 0030h, 0020h
+		dw 0040h, 0020h
+		dw 0050h, 0020h
+		dw 0000h, 0001h
+		dw 0050h, 0020h
+		dw 0040h, 0020h
+		dw 0030h, 0020h
+		dw 0020h, 0020h
+		dw 0010h, 0020h
+		dw 0000h, 0001h
+		dw 0010h, 0020h
+		dw 0020h, 0020h
+		dw 0030h, 0020h
+		dw 0020h, 0020h
+		dw 0010h, 0020h
+		dw 0000h, 0001h
+		dw 0010h, 0020h, 0ffffh
+M_Stop	dw 0FF87h, 0FFFFh
+Play_state dw 0
+TitleColor dw 2 ,2Ah, 2fh, 28h, 09h, 2Ch, 5Eh, 0FFFFh
+
+
+o_time dw ?
+
 
 .code
-
-;SetMode macro mode    
-;        mov ah,00h
-;        mov al,mode
-;        int 10h
-;        endm
-;SetColor macro color  
-;         mov ah,0bh 
-;         mov bh,00h
-;         mov bl,color  
-;         int 10h
-;         endm
 WrPixel macro xPara, yPara, color                ;This macro will write a pixel    
     Local store_pixel, Xmax, Xmin, checkY, Ymax, Ymin, printPixel
     pusha
+	push bp
     push sp
 	push ax
+	mov bl, color
+	push bx
     push xPara
     push yPara
     mov  bp, sp
@@ -89,10 +216,11 @@ WrPixel macro xPara, yPara, color                ;This macro will write a pixel
     call dword ptr [Tankvesa_info] ;call far address of window-handling function
     store_pixel:
     pop di
-	mov ax, SS:[BP+4]
-	mov	bl, color
+	mov ax, SS:[BP+6]
+	mov	bx, SS:[BP+4]
     mov byte ptr es:[di], bl 
-    mov sp, SS:[BP+6]
+    mov sp, SS:[BP+8]
+	pop bp
     popa
     endm
 
@@ -1771,6 +1899,11 @@ lgun:
 	ret
 print_left endp
 
+
+
+
+
+
 pj5_Init proc 
 	push		bp
 	mov			bp, sp
@@ -1858,6 +1991,229 @@ TankProcess proc
 			dw SEVEN
 			dw EIGHT
 TankProcess endp
+
+musicInit proc 
+    push	bp
+	mov		bp, sp
+	push 	sp
+    push    di
+	push	si
+	mov		Play_state, 1
+	mov		si, SS:[BP+4]
+	shl		si, 1
+	jmp		M_table[si]
+	GotShoot_Music:
+    lea     di, M_GotShoot
+    mov     musicOffset, di
+	jmp		Exit_process
+	Welcome_Music:
+    lea     di, M_Welcome
+    mov     musicOffset, di
+	jmp		Exit_process
+	TT_Music:
+    lea     di, M_Win
+    mov     musicOffset, di
+	jmp		Exit_process
+	Stop_Playing:
+	lea		di, M_Stop
+	mov		musicOffset, di
+	jmp		Exit_process
+	OP_Music:
+	lea		di, M_op
+	mov		musicOffset, di
+	jmp		Exit_process
+	Exit_process:
+	mov		o_time, 0
+	pop		si
+    pop     di   
+	mov     sp, SS:[BP-2]
+    pop     bp
+	ret     2
+	M_table	dw GotShoot_Music
+			dw Welcome_Music
+			dw TT_Music
+			dw Stop_Playing
+			dw OP_Music
+musicInit endp
+
+Playmusic proc
+    push	bp
+	mov		bp, sp
+	push 	sp
+    push    di
+	push	ax
+	push	bx
+	push	cx
+	push	dx
+	.if		Play_state != 1 
+		jmp		Exit_process
+	.endif
+    mov     di, musicOffset
+    .if		word ptr [di] != 0ff87h
+	mov     ah, 2ch
+	int     21h
+	cmp     dx, o_time
+	jg      continue
+	add     o_time, 0E890h
+	xchg    dx, o_time
+	continue:
+	sub     dx, o_time
+	cmp     dx, word ptr[di-2]
+	jl      Exit_process
+	.else
+	add		di, 2
+	.endif
+    START:
+	.if     word ptr [di] == 0ffffh
+        in      al, 61h ; Turn off note (get value from; port 61h).
+ 	    and     al, 11111100b ; Reset bits 1 and 0.
+ 	    out     61h, al ; Send new value.
+		mov		Play_state, 0
+        jmp     Exit_process
+    .endif
+	mov		bx, word ptr[di]
+	cmp		bx, 0000h
+	jne     Not_mute
+	in      al, 61h ; Turn off note (get value from; port 61h).
+ 	and     al, 11111100b ; Reset bits 1 and 0.
+ 	out     61h, al ; Send new value.
+	mov     ah, 2ch
+	int     21h
+	mov     o_time, dx
+	jmp     Next_Melody
+	Not_mute:
+	cmp 	bx, 0010h
+	jge		middleF
+	jmp		output_melody
+	middleF: 
+	cmp		bx, 0100h
+	jge		highF
+	mov     cl, 4
+	shr		bx, cl
+	add		bx, 7
+	jmp		output_melody
+	highF:	
+	mov     cl, 8
+	shr		bx, cl
+	add		bx, 14
+	output_melody:
+	shl		bx, 1
+	add		bx, offset melody
+	mov		ax, word ptr[bx]
+	out		42h, al
+	mov		al, ah
+	out		42h, al
+	in 		al, 61h
+
+	or 		al, 00000011b
+	out     61h, al ; Send new value.
+
+	mov     ah, 2ch
+	int     21h
+	mov     o_time, dx
+
+ 	
+
+ 	Next_Melody:
+	add     di, 4
+    mov     musicOffset, di
+
+
+	
+
+    Exit_process:
+	pop		dx
+	pop		cx
+	pop		bx
+	pop		ax
+    pop     di   
+	mov     sp, SS:[BP-2]
+    pop     bp
+	ret     
+Playmusic endp
+
+PlayLoopMusic proc
+	push	bp
+	mov		bp, sp
+	push 	sp
+    push    di
+	mov		di, musicOffset
+	.if		word ptr[di] == 0ff87h
+			add di, 2
+	.endif
+	.if		word ptr[di] == 0ffffh
+		jmp		Exit_process
+	.endif
+	START:
+	mov		bx, [di]
+	cmp		bx, 0000h
+	jne     Not_mute
+	in al, 61h ; Turn off note (get value from; port 61h).
+ 	and al, 11111100b ; Reset bits 1 and 0.
+ 	out 61h, al ; Send new value.
+	mov ah, 2ch
+	int 21h
+	mov o_time, dx
+	jmp dummy
+	Not_mute:
+	cmp 	bx, 0010h
+	jge		middleF
+	jmp		output_melody
+	middleF: 
+	cmp		bx, 0100h
+	jge		highF
+	mov cl, 4
+	shr		bx, cl
+	add		bx, 7
+	jmp		output_melody
+	highF:	
+	mov cl, 8
+	shr		bx, cl
+	add		bx, 14
+	output_melody:
+	shl		bx, 1
+	add		bx, offset melody
+	mov		ax, [bx]
+	out		42h, al
+	mov		al, ah
+	out		42h, al
+	in 		al, 61h
+
+	or 		al, 00000011b
+	out 61h, al ; Send new value.
+
+	mov ah, 2ch
+	int 21h
+	mov o_time, dx
+
+ 	dummy:
+	mov ah, 2ch
+	int 21h
+	cmp dx, o_time
+	jg continue
+	add o_time, 0E890h
+	xchg dx, o_time
+	continue:
+	sub dx, o_time
+	cmp dx, word ptr[di+2]
+	jl dummy
+
+ 	
+	add di, 4
+	cmp word ptr[di], 0FFFFh
+	jne START
+	
+	in al, 61h ; Turn off note (get value from; port 61h).
+ 	and al, 11111100b ; Reset bits 1 and 0.
+ 	out 61h, al ; Send new value.
+	mov		musicOffset, di
+	Exit_process:
+	pop     di   
+	mov     sp, SS:[BP-2]
+    pop     bp
+	ret     
+PlayLoopMusic endp
+
 
 END
 
