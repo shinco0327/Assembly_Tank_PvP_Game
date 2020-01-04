@@ -4,14 +4,13 @@
 ;By B10707009 and B10707049
 ;National Taiwan University of Science And Technology
 ;Department of Electrical Engineering
-include .\GameFile\Irvine16.inc
 include .\GameFile\GameDraw.h
 include	.\GameFile\GameObject.h
 include	.\GameFile\GamePrint.h
 include .\GameFile\pj5.inc
 
-
 .model small
+.386
 
 .data
 WelcomeStr 	db "TANK", 10, 10, 13
@@ -62,6 +61,8 @@ TankInit_set dw 50, 40, 5, 750, 560, 1, 150, 40, 5, 700, 40, 5, 300, 300, 7, 500
 char_table db 01h, 11h, 1fh, 1eh, 20h, 39h, 48h, 50h, 4bh, 4dh, 1ch
 char_status db 11 dup(0) 
 
+strcount db 0												;Used to store title current color
+TitleColor dw 2 ,2Ah, 2fh, 28h, 09h, 2Ch, 5Eh, 0FFFFh		;Title color
 
 bg_color db 72h
 ;Bound Handle
@@ -929,6 +930,4 @@ MyInterrupt proc
     iret
 MyInterrupt endp
 
-
-include pj5.asm
 end main

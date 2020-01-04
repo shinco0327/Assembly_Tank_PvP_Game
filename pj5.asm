@@ -16,7 +16,6 @@ height   dw 29
 count  dw 0
 x dw 240 ;center
 y dw 320
-strcount db 0
 h1 dw 15
 h2 dw 21
 h3 dw 15
@@ -159,7 +158,7 @@ M_op	dw 0ff87h, 0030h, 0020h
 		dw 0010h, 0020h, 0ffffh
 M_Stop	dw 0FF87h, 0000h, 0001h, 0FFFFh
 Play_state dw 0
-TitleColor dw 2 ,2Ah, 2fh, 28h, 09h, 2Ch, 5Eh, 0FFFFh
+
 
 
 o_time dw ?
