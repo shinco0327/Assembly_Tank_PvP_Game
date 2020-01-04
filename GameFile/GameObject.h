@@ -221,25 +221,33 @@ Update_Bullet macro
     pusha
 	lea			di, object 
 	mov			cx, LENGTHOF object
-	checkLoop:								;object Number, xPara, yPara
+	checkLoop:																	;object Number, xPara, yPara, direction, bound counter
 		cmp			word ptr[di], 2
 		jne			NextObject
 		
-		draw_circle word ptr[di+2], word ptr[di+4], 5, bg_color
-		xor			dx, dx
-		Check_Collision:
+		draw_circle word ptr[di+2], word ptr[di+4], 5, bg_color					;erase the bullet
+		xor			dx, dx														
+		Check_Collision:														;check the collion with the boundary
 		mov			ax, word ptr Screen_Size[0]
 		sub			ax, 13
-		cmp			word ptr[di+2], ax
-		jge			Make_oppositeY
-		cmp			word ptr[di+2], 13
-		jle			Make_oppositeY
+		.if			word ptr[di+2] >= ax
+			bts			dx, 0		
+			jmp			Make_oppositeY
+		.endif
+		.if			word ptr[di+2] <= 13
+			bts			dx, 0		
+			jmp			Make_oppositeY
+		.endif
 		mov			ax, word ptr Screen_Size[2]
 		sub			ax, 13
-		cmp         word ptr[di+4], ax
-		jge			Make_oppositeX
-		cmp 		word ptr[di+4], 13
-		jle			Make_oppositeX
+		.if			word ptr[di+4] >= ax
+			bts			dx, 0		
+			jmp			Make_oppositeX
+		.endif
+		.if			word ptr[di+4] <= 13
+			bts			dx, 0		
+			jmp			Make_oppositeX
+		.endif
 		
 
 		;check collision with obstacle
@@ -268,7 +276,7 @@ Update_Bullet macro
 			
 			push		sp
 			mov			bp, sp
-			mov			ax, word ptr[si]		;With X0
+			mov			ax, word ptr[si]		;With obstacle X0
 			sub			ax, word ptr[di+2]
 			cmp			ax, 0
 			jge			positive1
@@ -277,14 +285,14 @@ Update_Bullet macro
 			positive1:
 			push		ax
 			mov			ax, word ptr[di+2]
-			sub			ax, word ptr[si+4]		;With X1
+			sub			ax, word ptr[si+4]		;With obstacle X1
 			cmp			ax, 0
 			jge			positive2
 			dec			ax
 			not			ax
 			positive2:
 			push		ax
-			mov			ax, word ptr[si+2]		;With y0
+			mov			ax, word ptr[si+2]		;With obstacle y0
 			sub			ax, word ptr[di+4]
 			cmp			ax, 0
 			jge			positive3
@@ -292,7 +300,7 @@ Update_Bullet macro
 			not			ax
 			positive3:
 			push		ax
-			mov			ax, word ptr[si+6]		;With y1
+			mov			ax, word ptr[si+6]		;With  obstacle y1
 			sub			ax, word ptr[di+4]
 			cmp			ax, 0
 			jge			positive4
@@ -305,7 +313,7 @@ Update_Bullet macro
 			mov			dx, 0FFFFh
 			mov			cx, 4
 
-			L2:
+			L2:									;Find its near x-axis or y-axis
 			sub			bp, 2
 				.if 		dx >= word ptr SS:[bp] && word ptr SS:[BP] < 13
 					mov			dx, word ptr SS:[bp]
@@ -316,43 +324,29 @@ Update_Bullet macro
 			mov			sp, word ptr SS:[bp+8]
 			mov			ax, word ptr DS:[di+2]
 			mov			dx, word ptr DS:[di+4]
-			.if			bx == 4 || bx ==3
-			draw_circle word ptr[di+2], word ptr[di+4], 5, 2Ah  
+			.if			bx == 4 || bx ==3  
 				.if			dx < word ptr[si+2] || dx > word ptr[si+6]
-				draw_circle word ptr[di+2], word ptr[di+4], 5, 40h  
 					bts			dx, 0
 					jmp			Make_oppositeX
 				.endif
 				jmp		Make_oppositeY			
 			.endif
 			.if			bx == 2 || bx == 1
-			draw_circle word ptr[di+2], word ptr[di+4], 5, 36h
 				.if			ax < word ptr[si] || ax > word ptr[si+4] 
 					bts			dx, 0
 					jmp			Make_oppositeY
 				.endif
 				jmp		Make_oppositeX
 			.endif
-			;.if			bx == 1 ;&& ax > word ptr[si] && ax < word ptr[si+4] 
-			;	jmp			Make_oppositeX
-			;.endif
-			;.if			bx == 2 ;&& ax > word ptr[si] && ax < word ptr[si+4] 
-			;	jmp			Make_oppositeX
-			;.endif
-			;.if			bx == 3 ;&& bx > word ptr[si+2] && bx < word ptr[si+6] 
-			;	jmp			Make_oppositeY
-			;.endif
-			;.if			bx == 4 && bx > word ptr[si+2] && bx < word ptr[si+6] 
-			;	jmp			Make_oppositeY
-			;.endif
+
 		Out_Range:
-		add			si, 8			
+		add			si, 8						;Find next object
 		cmp			word ptr[si], 0FFFFh
 		jne			L1
 		jmp			Update
 		
 
-		Make_oppositeX:
+		Make_oppositeX:							;bound with Y-axis
 		xor			bx, bx
 		xor			ax, ax
 		mov			bl, byte ptr[di+6]
@@ -361,7 +355,7 @@ Update_Bullet macro
 		mov			word ptr[di+6], ax
 		jmp MeetBoundary
 
-		Make_oppositeY:
+		Make_oppositeY:							;bound with X-axis
 		xor			bx, bx
 		xor			ax, ax
 		mov			bl, byte ptr[di+6]
@@ -370,7 +364,7 @@ Update_Bullet macro
 		mov			word ptr[di+6], ax
 		jmp MeetBoundary
 
-		MeetBoundary:
+		MeetBoundary:							;Different direction & bound counter+1
 		bt			dx, 0
 		jnc			No_Move
 		mov			speed_of_Bullet, 5
@@ -387,15 +381,14 @@ Update_Bullet macro
 		mov			word ptr[di+6], 0
 		mov			word ptr[di+8], 0
 		jmp 		NextObject
-		Update:
+		Update:									;Move bullet
 		Bullet_move
-		ObjectOut:
-		
+		ObjectOut:								;print bullet
 		cmp			word ptr[di], 2
 		jne			NextObject
 		Collision_With_Tank word ptr[di+2], word ptr[di+4]
 		draw_circle word ptr[di+2], word ptr[di+4], 5, 0Ah
-		NextObject:
+		NextObject:								;Process next bullet
 		add			di, 10
 		sub			cx, 5
 		cmp			cx, 0
@@ -405,7 +398,7 @@ Update_Bullet macro
     popa
 endm
 
-Collision_With_Tank macro xPara, yPara
+Collision_With_Tank macro xPara, yPara			
 	Local checkLoop, checkNext, xSquare, ySquare, L1, L2
 	pusha
 	push		sp
@@ -424,14 +417,14 @@ Collision_With_Tank macro xPara, yPara
 	checkLoop:
 	mov			ax, word ptr[si+2]
 	sub			ax, word ptr SS:[BP]
-	xSquare:
+	xSquare:								;(Bullet X - Tank X)^2
 	mov			bx, ax
 	imul		bx
 	push		dx
 	push		ax
 	mov			ax, word ptr[si+4]
 	sub			ax, word ptr SS:[BP+2]
-	ySquare:
+	ySquare:								;(Bullet Y - Tank Y)^2
 	mov			bx, ax
 	imul		bx
 
@@ -441,25 +434,25 @@ Collision_With_Tank macro xPara, yPara
 	adc			dx, bx
 
 	
-	cmp			ax, SS:[BP-2]
+	cmp			ax, SS:[BP-2]				;(Bullet X - Tank X)^2 + ;(Bullet Y - Tank Y)^2 < 28^2
 	ja			checkNext
 	cmp			dx, 0
-	jg			checkNext
+	jg			checkNext					;Got shoot
 	xor			ax, ax
 	mov			al, 0Ah
 	mov			word ptr[di], 0
-	mov			word ptr[si+8], ax
+	mov			word ptr[si+8], ax			;Show hit color
 	mov			word ptr[si+10], ax
 	mov			word ptr[si+12], ax
 	mov			word ptr SS:[BP+8], si
-	Print_Tank
+	Print_Tank								
 	push		0
-	invoke		musicInit
+	invoke		musicInit					;Play hit music
 	invoke		PlayLoopMusic
 	mov			sp, SS:[BP+4]
 	popa
 	jmp			GameSet
-	checkNext:
+	checkNext:								;check next tank
 	add			si, 14
 	sub			cx, 7
 	cmp			cx, 0
@@ -474,7 +467,7 @@ Print_Bullet macro
 	pusha
 	lea			di, object
 	mov			cx, LENGTHOF object
-	PrintLoop:								;object Number, xPara, yPara
+	PrintLoop:								;object Number, xPara, yPara, direction, bound counter
 		cmp			word ptr[di], 1
 		jne			ObjectNotFound
 		mov			ax, bound_time
@@ -523,7 +516,7 @@ Discharge_Bullet macro
 	je			Discharge7
 	cmp			di, 8
 	je			Discharge8
-	Discharge1:
+	Discharge1:								;Update bullet coordinate base on its direction
 	add			ax, 0
 	sub			bx, 35
 	jmp 		Finish
@@ -561,7 +554,7 @@ Discharge_Bullet macro
 endm
 
 Introdution macro Para1, Para2
-	Local		L1
+	Local		L1										;The introduction page
 	pusha
 	set_Background 00h
 	SetCursor	0, 0
@@ -578,7 +571,7 @@ Introdution macro Para1, Para2
 	popa
 endm
 
-print_title macro x,y, color
+print_title macro x,y, color							;Macro to print title
 	push bp
 	mov bp, sp
 	mov cx, color
@@ -797,7 +790,7 @@ print_title macro x,y, color
 	pop bp
 endm
 
-WrPixel macro x, y, color
+WrPixel macro x, y, color				;If keys get pressed, pause the process to print title 
 	.if char_status[0] == 1 || char_status[2] == 1 || char_status[3] == 1
 		jmp print_k4_initial
 	.endif
@@ -807,7 +800,7 @@ WrPixel macro x, y, color
 	draw_pixel x, y, color
 endm
 
-Update_Tank macro UserID, Para
+Update_Tank macro UserID, Para			;Update tanks' position
 	Local FindLoop, ObjectNotFound, ObjectFound, Act_Control, exit_macro, Forward_Process, Reverse_Process, Left_Process, Right_Process
 	Local Forward1, Forward2, Forward3, Forward4, Forward5, Forward6, Forward7, Forward8
 	Local Reverse1, Reverse2, Reverse3, Reverse4, Reverse5, Reverse6, Reverse7, Reverse8
@@ -816,7 +809,7 @@ Update_Tank macro UserID, Para
 	pusha
 	lea			si, object_tank
 	mov			cx, LENGTHOF object_tank
-	FindLoop:							
+	FindLoop:							;find tank offset
 		cmp			word ptr [si], UserID
 		je			ObjectFound
 		ObjectNotFound:
@@ -826,10 +819,10 @@ Update_Tank macro UserID, Para
 		jle			exit_macro
 		jmp			FindLoop
 	ObjectFound:
-	Erase_Tank 	
-	mov			ax, word ptr[si+2]
-	mov			bx, word ptr[si+4]
-	mov			cx, Para
+	Erase_Tank 							;erase tank
+	mov			ax, word ptr[si+2]		;x
+	mov			bx, word ptr[si+4]		;y
+	mov			cx, Para				;what to act
 	Act_Control:
 	cmp			cx, 1
 	je			Forward_Process
@@ -842,19 +835,19 @@ Update_Tank macro UserID, Para
 	cmp			cx, 5
 	je			DischargeProcess
 	jmp			exit_macro
-	Right_Process:
+	Right_Process:						;inc direction
 	add			word ptr[si+6], 1
 	cmp			word ptr[si+6], 9
 	jl			exit_macro
 	mov			word ptr[si+6], 1
 	jmp 		exit_macro
-	Left_Process:
+	Left_Process:						;dec direction
 	sub			word ptr[si+6], 1
 	cmp			word ptr[si+6], 0
 	jg			exit_macro
 	mov			word ptr[si+6], 8
 	jmp 		exit_macro
-	Forward_Process:
+	Forward_Process:					;mov tank forward
 	cmp			word ptr[si+6], 1
 	je			Forward1
 	cmp			word ptr[si+6], 2
@@ -899,7 +892,7 @@ Update_Tank macro UserID, Para
 	sub			ax, speed_of_Tank
 	sub			bx, speed_of_Tank
 	jmp			exit_macro
-	Reverse_Process:
+	Reverse_Process:					;Reverse the tank
 	cmp			word ptr[si+6], 1
 	je			Reverse1
 	cmp			word ptr[si+6], 2
@@ -944,8 +937,7 @@ Update_Tank macro UserID, Para
 	add			ax, speed_of_Tank
 	add			bx, speed_of_Tank
 	jmp			exit_macro
-	DischargeProcess:
-	;Create_Bullet
+	DischargeProcess:					;Discharge the bullet
 	Discharge_Bullet
 	jmp			CheckComplete
 	exit_macro:
@@ -958,7 +950,7 @@ Update_Tank macro UserID, Para
 	cmp			word ptr[si+2], cx
 	jl			Under_Xmax
 	mov			word ptr[si+2], cx
-	Under_Xmax:
+	Under_Xmax:							;Check with boundary
 	mov			cx, 30
 	cmp 		word ptr[si+2], cx
 	jge			Above_Xmin
@@ -975,7 +967,7 @@ Update_Tank macro UserID, Para
 	jg			checkObstacle
 	mov			word ptr[si+4], cx
 	
-	checkObstacle:
+	checkObstacle:							;check with obstacle
 	pop			bx
 	pop			ax
 	mov 		di, mapType
@@ -1011,37 +1003,37 @@ Update_Tank macro UserID, Para
 	popa
 endm
 
-GameA_Keyboard macro
+GameA_Keyboard macro						;Will check keyboard input
 	Local		exit_macro, checkP1_Down, checkP1_Down, checkP1_Left, checkP1_Right
 	Local		checkP2_Up, checkP2_Down, checkP2_Left, checkP2_Right, checkP2_Discharge
 	Local		P1_Left_Write, P1_Right_Write, P2_Left_Write, P2_Right_Write, P1_Discharge_Write, P2_Discharge_Write
 
-	cmp			byte ptr char_status[0], 1
+	cmp			byte ptr char_status[0], 1				;ESC
 	je			exit_game
-	cmp			byte ptr char_status[1], 1
+	cmp			byte ptr char_status[1], 1				;W
 	jne			checkP1_Down
 	;P1 up 
 	Update_Tank 1, 1
 	checkP1_Down:
-	cmp			byte ptr char_status[2], 1
+	cmp			byte ptr char_status[2], 1				;S
 	jne			checkP1_Left
 	;P2 Down
 	Update_Tank 1,3
 	checkP1_Left:
-	cmp			byte ptr char_status[3], 1
+	cmp			byte ptr char_status[3], 1				;A
 	jne			checkP1_Right
 	
 	Update_Tank 1, 4
 	checkP1_Right:
-	cmp			byte ptr char_status[4], 1
+	cmp			byte ptr char_status[4], 1				;D
 	jne			checkP1_Discharge
 	
 	Update_Tank 1, 2
 	checkP1_Discharge:
-	cmp			byte ptr char_status[5], 1
+	cmp			byte ptr char_status[5], 1				;SPACE
 	jne			checkP2_Up
 	;P1 Discharge
-	mov 		ah, 2ch
+	mov 		ah, 2ch									;cool down time
 	int 		21h
 	sub			dx, word ptr game_timer[10]
 	cmp 		dx, 5
@@ -1056,29 +1048,29 @@ GameA_Keyboard macro
 	mov			word ptr game_timer[10], dx
 	Update_Tank 1, 5
 	checkP2_Up:
-	cmp			byte ptr char_status[6], 1
+	cmp			byte ptr char_status[6], 1				;UP
 	jne			checkP2_Down
 	;P2 Up
 	Update_Tank 2,1
 	checkP2_Down:
-	cmp			byte ptr char_status[7], 1
+	cmp			byte ptr char_status[7], 1				;DOWN
 	jne			checkP2_Left
 	;P2 Down
 	Update_Tank 2, 3
 	checkP2_Left:
-	cmp			byte ptr char_status[8], 1
+	cmp			byte ptr char_status[8], 1				;LEFT
 	jne			checkP2_Right
 	;P2 Left
 	
 	Update_Tank 2, 4
 	checkP2_Right:
-	cmp			byte ptr char_status[9], 1
+	cmp			byte ptr char_status[9], 1				;RIGHT
 	jne			checkP2_Discharge
 	;P2 Right
 	
 	Update_Tank 2, 2
 	checkP2_Discharge:
-	cmp			byte ptr char_status[10], 1
+	cmp			byte ptr char_status[10], 1				;ENTER
 	jne			exit_macro
 	;P2 Discharge
 	mov 		ah, 2ch

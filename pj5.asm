@@ -157,7 +157,7 @@ M_op	dw 0ff87h, 0030h, 0020h
 		dw 0010h, 0020h
 		dw 0000h, 0001h
 		dw 0010h, 0020h, 0ffffh
-M_Stop	dw 0FF87h, 0FFFFh
+M_Stop	dw 0FF87h, 0000h, 0001h, 0FFFFh
 Play_state dw 0
 TitleColor dw 2 ,2Ah, 2fh, 28h, 09h, 2Ch, 5Eh, 0FFFFh
 
@@ -178,7 +178,7 @@ WrPixel macro xPara, yPara, color                ;This macro will write a pixel
     push yPara
     mov  bp, sp
     mov ax, SS:[BP+2]                               ;compare to x
-    cmp ax, word ptr TankScreen_Size[0]                 ;exceed x max
+    cmp ax, word ptr TankScreen_Size[0]             ;exceed x max
     jl checkY
     jge Xmax
     cmp ax, 0                                       ;lower than 0
@@ -1904,7 +1904,7 @@ print_left endp
 
 
 
-pj5_Init proc 
+pj5_Init proc 							;Will store svga info 
 	push		bp
 	mov			bp, sp
 	push 		sp
@@ -1923,13 +1923,13 @@ pj5_Init endp
 
 
 
-TankProcess proc 
+TankProcess proc 						;Draw tank
 	push		bp
 	mov			bp, sp
 	push 		sp
 	push		ax
 	push 		si
-	mov xcount, 0
+	mov xcount, 0						;Initial variables
 	mov ycount,0
 	mov height, 29
 	mov count, 0
@@ -1951,7 +1951,7 @@ TankProcess proc
 	mov si, word ptr SS:[BP+10]
 	dec si
 	add si, si
-	jmp TABLE[si]
+	jmp TABLE[si]						;Base on its direction 
 	ONE:
 	call print_up
 	jmp exit_Tank
@@ -1982,7 +1982,7 @@ TankProcess proc
 	mov sp, SS:[BP-2]
 	pop bp
 	ret 12
-	TABLE	dw ONE
+	TABLE	dw ONE						;Jump table
 			dw TWO
 			dw THREE
 			dw FOUR
@@ -1992,7 +1992,7 @@ TankProcess proc
 			dw EIGHT
 TankProcess endp
 
-musicInit proc 
+musicInit proc 							;Move the musicOffset to the certain music
     push	bp
 	mov		bp, sp
 	push 	sp
@@ -2029,14 +2029,14 @@ musicInit proc
 	mov     sp, SS:[BP-2]
     pop     bp
 	ret     2
-	M_table	dw GotShoot_Music
+	M_table	dw GotShoot_Music			;Jump table
 			dw Welcome_Music
 			dw TT_Music
 			dw Stop_Playing
 			dw OP_Music
 musicInit endp
 
-Playmusic proc
+Playmusic proc							;Will play the frequency set the timer and return
     push	bp
 	mov		bp, sp
 	push 	sp
@@ -2045,38 +2045,38 @@ Playmusic proc
 	push	bx
 	push	cx
 	push	dx
-	.if		Play_state != 1 
+	.if		Play_state != 1 			;Not playing music
 		jmp		Exit_process
 	.endif
     mov     di, musicOffset
-    .if		word ptr [di] != 0ff87h
+    .if		word ptr [di] != 0ff87h		;Not the start point of music
 	mov     ah, 2ch
 	int     21h
 	cmp     dx, o_time
 	jg      continue
 	add     o_time, 0E890h
 	xchg    dx, o_time
-	continue:
+	continue:							;timer < delay time, than return
 	sub     dx, o_time
 	cmp     dx, word ptr[di-2]
 	jl      Exit_process
 	.else
-	add		di, 2
+	add		di, 2						;move to the first frequency
 	.endif
     START:
 	.if     word ptr [di] == 0ffffh
-        in      al, 61h ; Turn off note (get value from; port 61h).
- 	    and     al, 11111100b ; Reset bits 1 and 0.
- 	    out     61h, al ; Send new value.
+        in      al, 61h 				; Turn off note (get value from; port 61h).
+ 	    and     al, 11111100b 			; Reset bits 1 and 0.
+ 	    out     61h, al 				; Send new value.
 		mov		Play_state, 0
         jmp     Exit_process
     .endif
 	mov		bx, word ptr[di]
 	cmp		bx, 0000h
 	jne     Not_mute
-	in      al, 61h ; Turn off note (get value from; port 61h).
- 	and     al, 11111100b ; Reset bits 1 and 0.
- 	out     61h, al ; Send new value.
+	in      al, 61h 					; Turn off note (get value from; port 61h).
+ 	and     al, 11111100b 				; Reset bits 1 and 0.
+ 	out     61h, al 					; Send new value.
 	mov     ah, 2ch
 	int     21h
 	mov     o_time, dx
@@ -2098,7 +2098,7 @@ Playmusic proc
 	add		bx, 14
 	output_melody:
 	shl		bx, 1
-	add		bx, offset melody
+	add		bx, offset melody			;output frequency
 	mov		ax, word ptr[bx]
 	out		42h, al
 	mov		al, ah
@@ -2106,17 +2106,17 @@ Playmusic proc
 	in 		al, 61h
 
 	or 		al, 00000011b
-	out     61h, al ; Send new value.
+	out     61h, al 					; Send new value.
 
 	mov     ah, 2ch
 	int     21h
-	mov     o_time, dx
+	mov     o_time, dx					;set timer
 
  	
 
  	Next_Melody:
 	add     di, 4
-    mov     musicOffset, di
+    mov     musicOffset, di				;move to next frequency
 
 
 	
@@ -2132,7 +2132,7 @@ Playmusic proc
 	ret     
 Playmusic endp
 
-PlayLoopMusic proc
+PlayLoopMusic proc						;Will return after music played
 	push	bp
 	mov		bp, sp
 	push 	sp
@@ -2148,9 +2148,9 @@ PlayLoopMusic proc
 	mov		bx, [di]
 	cmp		bx, 0000h
 	jne     Not_mute
-	in al, 61h ; Turn off note (get value from; port 61h).
- 	and al, 11111100b ; Reset bits 1 and 0.
- 	out 61h, al ; Send new value.
+	in al, 61h 						; Turn off note (get value from; port 61h).
+ 	and al, 11111100b 				; Reset bits 1 and 0.
+ 	out 61h, al 					; Send new value.
 	mov ah, 2ch
 	int 21h
 	mov o_time, dx
@@ -2180,7 +2180,7 @@ PlayLoopMusic proc
 	in 		al, 61h
 
 	or 		al, 00000011b
-	out 61h, al ; Send new value.
+	out 61h, al 					; Send new value.
 
 	mov ah, 2ch
 	int 21h
@@ -2203,11 +2203,12 @@ PlayLoopMusic proc
 	cmp word ptr[di], 0FFFFh
 	jne START
 	
-	in al, 61h ; Turn off note (get value from; port 61h).
- 	and al, 11111100b ; Reset bits 1 and 0.
- 	out 61h, al ; Send new value.
+	in al, 61h 						; Turn off note (get value from; port 61h).
+ 	and al, 11111100b 				; Reset bits 1 and 0.
+ 	out 61h, al 					; Send new value.
 	mov		musicOffset, di
 	Exit_process:
+	mov		Play_state, 0
 	pop     di   
 	mov     sp, SS:[BP-2]
     pop     bp
