@@ -5,7 +5,7 @@
 ;National Taiwan University of Science And Technology
 ;Department of Electrical Engineering
 
-SetCursor macro row, column
+SetCursor macro row, column         ;Save the cursor
     pusha
     mov 		ah, 02h
     mov         bh, 00h
@@ -15,7 +15,7 @@ SetCursor macro row, column
     popa
 endm
 
-PrintString macro Para
+PrintString macro Para              ;Print a string
     pusha
     mov         ah, 09h
     lea         dx, Para

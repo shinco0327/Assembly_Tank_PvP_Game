@@ -4,11 +4,11 @@
 ;By B10707009 and B10707049
 ;National Taiwan University of Science And Technology
 ;Department of Electrical Engineering
-include .\INCLUDE\Irvine16.inc
-include GameDraw.h
-include	GameObject.h
-include	GamePrint.h
-include pj5.inc
+include .\GameFile\Irvine16.inc
+include .\GameFile\GameDraw.h
+include	.\GameFile\GameObject.h
+include	.\GameFile\GamePrint.h
+include .\GameFile\pj5.inc
 
 
 .model small
@@ -52,7 +52,7 @@ speed_of_Bullet dw 8
 speed_of_Tank dw 25	
 mapType dw ?
 map dw 350, 250, 450, 350, 150, 0, 200, 350, 600, 400, 650, 600, 0ffffh
-	dw 0, 0, 50, 50, 100, 300, 150, 480, 300, 150, 350, 350, 550, 0, 580, 250, 250, 0, 300, 150, 580, 400, 639, 480, 0ffffh
+	dw 250, 475, 475, 500, 100, 300, 150, 480, 300, 150, 350, 350, 550, 0, 580, 250, 250, 0, 300, 150, 580, 400, 639, 480, 0ffffh
 	dw 375, 250, 425, 350, 250, 200, 550, 250, 250, 350, 550, 400, 175, 75, 225, 125, 375, 0, 425, 50, 575, 75, 625, 125, 175, 475, 225, 525, 375, 550, 425, 600, 575, 475, 625, 525, 0ffffh
 	dw 100, 175, 125, 425, 500, 175, 525, 425, 125, 175, 300, 200, 125, 290, 300, 310, 125, 400, 300, 425, 525, 175, 700, 200, 525, 290, 700, 310, 525, 400, 700, 425, 0ffffh, 0FF87h 
 ;Tanks' initial position in every map x, y, direction
@@ -860,7 +860,7 @@ GameMode_A proc
 		jne			wait_player
 	push		3									;Stop the music
 	invoke		musicInit
-	invoke		Playmusic
+	invoke		PlayLoopMusic
 	exit_game:
 	mov			sp, SS:[bp-2]
 	pop			bp
@@ -925,7 +925,7 @@ MyInterrupt proc
     pop         cx
     pop         ax
 	popf
-	sti							;Enable the interrupt
+	sti								;Enable the interrupt
     iret
 MyInterrupt endp
 
