@@ -18,7 +18,7 @@ WelcomeStr 	db "TANK", 10, 10, 13
 			db "Department of Electrical Engineering", 10, 10, 13
 			db "uProcessor Lab Fall, 2019", 10, 13
 			db "By", 10, 13
-			db "B10707009 HISU MIN YANG said, I got a big dick!", 10, 13
+			db "B10707009 HISU MIN YANG said, Enjoy the game!", 10, 13
 			db "B10707049 YU SHAN HUANG said, Knock Knock...", 10, 10, 13
 			db "Recommend running the program on DOSBOX.", 10, 13
 			db "Download DOSBOX at https://www.dosbox.com/",10, 10, 13
