@@ -3,6 +3,8 @@ NTUST Electrical Engineering μProcessor Lab Fall, 2019 Final Project
 
 Hardware Requirement: CPU: 80386 and above. SuperVGA supported.
 
+Update at 2021/09 : This game also works perfectly on DOSBOX (Universal) on my Macbook Air M1 (Big Sur) 
+
 ![IMAGE](https://github.com/shinco0327/uProcessor_Midterm/blob/master/NTUST_LOGO.png?raw=true)
 
 國 立 台 灣 科 技 大 學
