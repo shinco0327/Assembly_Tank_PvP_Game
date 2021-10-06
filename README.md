@@ -1,4 +1,4 @@
-# uProcessor_Game
+# 組合語言遊戲 PvP雙人戰車遊戲
 NTUST Electrical Engineering μProcessor Lab Fall, 2019 Final Project 
 
 Hardware Requirement: CPU: 80386 and above. SuperVGA supported.
