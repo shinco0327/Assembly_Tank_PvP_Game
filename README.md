@@ -7,9 +7,9 @@ Update at 2021/09 : This game also works perfectly on DOSBOX (Universal) on my M
 
 ![IMAGE](https://github.com/shinco0327/uProcessor_Midterm/blob/master/NTUST_LOGO.png?raw=true)
 
-國 立 台 灣 科 技 大 學
+國立台灣科技大學
 
-微 算 機 概 論 實 習
+台科大 電機工程系 微算機概論實習
 
   指 導 教 授：陸敬互 教 授
 
@@ -108,4 +108,3 @@ Update at 2021/09 : This game also works perfectly on DOSBOX (Universal) on my M
 
   從零開始構思遊戲是一個蠻新奇的過程，一開始有遊戲要怎麼玩的想法，但仍不知道要如何實作。透過先將部分模組建立好，再來將完成的模組套在一起。有了一個大概的主體後，便能清楚的知道接下來的流程與改善方向。
   
-  google-site-verification: googlecc9cc1dad266dc7c.html
